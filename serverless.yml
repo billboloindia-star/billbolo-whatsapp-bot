@@ -61,39 +61,7 @@ functions:
           method: post
           cors: true
 
-resources:
-  Resources:
-    UserStateTable:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: billbolo-state-${self:provider.stage}
-        BillingMode: PAY_PER_REQUEST
-        AttributeDefinitions:
-          - AttributeName: phone_number
-            AttributeType: S
-          - AttributeName: created_at
-            AttributeType: S
-        KeySchema:
-          - AttributeName: phone_number
-            KeyType: HASH
-          - AttributeName: created_at
-            KeyType: RANGE
-        TTL:
-          AttributeName: expires_at
-          Enabled: true
-
-    PDFBucket:
-      Type: AWS::S3::Bucket
-      Properties:
-        BucketName: billbolo-pdfs-${self:provider.stage}
-        VersioningConfiguration:
-          Status: Enabled
-        LifecycleConfiguration:
-          Rules:
-            - Id: DeleteOldPDFs
-              Status: Enabled
-              ExpirationInDays: 7
-              NoncurrentVersionExpirationInDays: 1
+# Resources temporarily removed for debugging - will create manually
 
 plugins:
   - serverless-python-requirements
