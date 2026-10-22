@@ -21,6 +21,10 @@
         .checkout-header h1 {
             font-size: 2.5rem;
             margin-bottom: 0.5rem;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
         }
         .checkout-content {
             display: grid;
@@ -28,19 +32,27 @@
             gap: 2rem;
         }
         .plan-details {
-            background: var(--bg-secondary);
+            background: linear-gradient(135deg, #e0f2fe 0%, #f0f9ff 100%);
             padding: 2rem;
             border-radius: 12px;
-            border: 1px solid var(--border-color);
+            border: 3px solid #0ea5e9;
         }
         .plan-details h2 {
-            color: var(--primary);
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin-bottom: 1rem;
+            font-weight: 800;
+            font-size: 1.75rem;
         }
         .plan-details .price {
-            font-size: 2rem;
-            font-weight: 700;
-            color: var(--primary);
+            font-size: 2.5rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #0284c7, #0369a1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
             margin: 1rem 0;
         }
         .plan-details ul {
@@ -48,19 +60,22 @@
             margin: 1.5rem 0;
         }
         .plan-details li {
-            padding: 0.5rem 0;
+            padding: 0.75rem 0;
             color: var(--text-secondary);
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid rgba(14, 165, 233, 0.2);
+            font-weight: 500;
         }
         .payment-form {
             background: white;
             padding: 2rem;
             border-radius: 12px;
-            border: 1px solid var(--border-color);
+            border: 2px solid #0ea5e9;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.1);
         }
         .payment-form h3 {
             color: var(--text-primary);
             margin-bottom: 1.5rem;
+            font-weight: 700;
         }
         .form-group {
             margin-bottom: 1.5rem;
@@ -69,14 +84,20 @@
             display: block;
             margin-bottom: 0.5rem;
             color: var(--text-primary);
-            font-weight: 500;
+            font-weight: 600;
         }
         .form-group input {
             width: 100%;
             padding: 0.75rem;
-            border: 1px solid var(--border-color);
+            border: 2px solid #e0f2fe;
             border-radius: 6px;
             font-size: 1rem;
+            transition: all 0.3s;
+        }
+        .form-group input:focus {
+            outline: none;
+            border-color: #0ea5e9;
+            box-shadow: 0 0 10px rgba(14, 165, 233, 0.2);
         }
         .payment-methods {
             margin: 2rem 0;
@@ -84,15 +105,21 @@
         .payment-methods h4 {
             margin-bottom: 1rem;
             color: var(--text-primary);
+            font-weight: 700;
         }
         .payment-option {
             display: flex;
             align-items: center;
             padding: 1rem;
-            border: 1px solid var(--border-color);
+            border: 2px solid #e0f2fe;
             border-radius: 6px;
             margin-bottom: 0.75rem;
             cursor: pointer;
+            transition: all 0.3s;
+        }
+        .payment-option:hover {
+            border-color: #0ea5e9;
+            background: rgba(14, 165, 233, 0.05);
         }
         .payment-option input[type="radio"] {
             margin-right: 1rem;
@@ -100,18 +127,19 @@
         .pay-button {
             width: 100%;
             padding: 1rem;
-            background: var(--primary);
+            background: linear-gradient(135deg, #0284c7, #0369a1);
             color: white;
             border: none;
             border-radius: 8px;
             font-size: 1rem;
-            font-weight: 600;
+            font-weight: 700;
             cursor: pointer;
-            transition: background 0.3s;
+            transition: all 0.3s;
             margin-top: 1rem;
         }
         .pay-button:hover {
-            background: var(--primary-dark);
+            transform: translateY(-2px);
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.3);
         }
         .security-note {
             text-align: center;
@@ -139,30 +167,28 @@
 
     <div class="checkout-container">
         <div class="checkout-header">
-            <h1>Upgrade to BillBolo Pro</h1>
-            <p>Start unlimited quotations today</p>
+            <h1 id="checkoutTitle">Upgrade to BillBolo Pro</h1>
+            <p id="checkoutSubtitle">Start unlimited quotations today</p>
         </div>
 
         <div class="checkout-content">
             <div class="plan-details">
-                <h2>Pro Monthly Plan</h2>
-                <div class="price">₹499<span style="font-size: 1rem; color: var(--text-secondary);">/month</span></div>
-                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Billed monthly. Cancel anytime.</p>
-                <ul>
+                <h2 id="planName">Pro Monthly Plan</h2>
+                <div class="price" id="planPrice">₹499<span style="font-size: 1rem; color: var(--text-secondary);">/month</span></div>
+                <p id="planDescription" style="color: var(--text-secondary); margin-bottom: 1.5rem;">Billed monthly. Cancel anytime.</p>
+                <ul id="planFeatures">
                     <li>✓ Unlimited quotations</li>
                     <li>✓ Expense tracking</li>
                     <li>✓ Google Sheets sync</li>
                     <li>✓ Priority support</li>
                     <li>✓ Professional PDFs</li>
                 </ul>
-                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
-                    Your subscription will renew automatically each month. You can cancel anytime from your account.
-                </p>
+                <p id="planNote" style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;"></p>
             </div>
 
             <div class="payment-form">
                 <h3>Payment Details</h3>
-
+                
                 <div class="form-group">
                     <label>Full Name</label>
                     <input type="text" placeholder="Your full name" required>
@@ -194,8 +220,8 @@
                     </label>
                 </div>
 
-                <button class="pay-button" onclick="processPayment()">Pay ₹499 Now</button>
-
+                <button class="pay-button" id="payButton" onclick="processPayment()">Pay Now</button>
+                
                 <div class="security-note">
                     🔒 Secure payment powered by PayU<br/>
                     Your payment information is encrypted
@@ -205,8 +231,73 @@
     </div>
 
     <script>
+        const plans = {
+            free: {
+                name: 'Free Plan',
+                title: 'Start with Free',
+                subtitle: 'Begin your journey today',
+                price: '₹0',
+                description: 'Free plan. Always free.',
+                buttonText: 'Get Started',
+                features: [
+                    '✓ 5 quotations/month',
+                    '✓ Expense tracking',
+                    '✓ Google Sheets sync'
+                ],
+                note: 'No credit card required. Upgrade anytime.'
+            },
+            pro: {
+                name: 'Pro Monthly Plan',
+                title: 'Upgrade to BillBolo Pro',
+                subtitle: 'Start unlimited quotations today',
+                price: '₹499<span style="font-size: 1rem; color: var(--text-secondary);">/month</span>',
+                description: 'Billed monthly. Cancel anytime.',
+                buttonText: 'Pay ₹499/month',
+                features: [
+                    '✓ Unlimited quotations',
+                    '✓ Expense tracking',
+                    '✓ Google Sheets sync',
+                    '✓ Priority support',
+                    '✓ Professional PDFs'
+                ],
+                note: 'Your subscription will renew automatically each month. You can cancel anytime from your account.'
+            },
+            yearly: {
+                name: 'Pro Yearly Plan',
+                title: 'Upgrade to BillBolo Pro',
+                subtitle: 'Get the best value',
+                price: '₹4,999<span style="font-size: 1rem; color: var(--text-secondary);">/year</span>',
+                description: 'Billed yearly. Save 16%.',
+                buttonText: 'Pay ₹4,999/year',
+                features: [
+                    '✓ Unlimited quotations',
+                    '✓ Expense tracking',
+                    '✓ Google Sheets sync',
+                    '✓ Priority support',
+                    '✓ Professional PDFs',
+                    '✓ 16% discount vs monthly'
+                ],
+                note: 'Your subscription will renew automatically each year. You can cancel anytime from your account.'
+            }
+        };
+
+        // Get plan from URL parameter
+        const urlParams = new URLSearchParams(window.location.search);
+        const selectedPlan = urlParams.get('plan') || 'pro';
+        const plan = plans[selectedPlan] || plans.pro;
+
+        // Update page with selected plan
+        document.getElementById('checkoutTitle').textContent = plan.title;
+        document.getElementById('checkoutSubtitle').textContent = plan.subtitle;
+        document.getElementById('planName').textContent = plan.name;
+        document.getElementById('planPrice').innerHTML = plan.price;
+        document.getElementById('planDescription').textContent = plan.description;
+        document.getElementById('planFeatures').innerHTML = plan.features.map(f => `<li>${f}</li>`).join('');
+        document.getElementById('planNote').textContent = plan.note;
+        document.getElementById('payButton').textContent = plan.buttonText;
+
         function processPayment() {
-            alert('Payment integration coming soon!\n\nFor now, message us on WhatsApp:\n+91 81234 22932');
+            alert(`Payment integration coming soon!\n\nFor now, message us on WhatsApp:\n+91 81234 22932\n\nPlan: ${plan.name}\nAmount: ${document.getElementById('planPrice').textContent.split('<')[0]}`);
         }
     </script>
 </body>
