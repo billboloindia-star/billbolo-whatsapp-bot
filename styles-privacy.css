@@ -29,10 +29,11 @@ body {
 .navbar {
     position: sticky;
     top: 0;
-    background: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(10px);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 2px solid rgba(99, 102, 241, 0.1);
     z-index: 100;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
 }
 
 .nav-container {
@@ -45,9 +46,12 @@ body {
 }
 
 .logo {
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: var(--text-primary);
+    font-size: 1.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     text-decoration: none;
 }
 
@@ -76,14 +80,21 @@ body {
 /* Header */
 header {
     margin-bottom: 3rem;
-    border-bottom: 2px solid var(--border-color);
+    border-bottom: 3px solid #f59e0b;
     padding-bottom: 2rem;
+    background: linear-gradient(180deg, #fdf2f8 0%, #f3e8ff 100%);
+    padding: 2rem;
+    margin: 0 -2rem 3rem -2rem;
 }
 
 header h1 {
     font-size: 2.5rem;
-    font-weight: 700;
+    font-weight: 800;
     margin-bottom: 0.5rem;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
 }
 
 .last-updated {
@@ -98,8 +109,11 @@ section {
 
 section h2 {
     font-size: 1.75rem;
-    font-weight: 700;
-    color: var(--primary);
+    font-weight: 800;
+    background: linear-gradient(135deg, #6366f1, #ec4899);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
     margin-bottom: 1rem;
     margin-top: 2rem;
 }
