@@ -10,8 +10,8 @@ provider:
 
   environment:
     STAGE: ${self:provider.stage}
-    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}
-    S3_BUCKET: ${self:service}-pdfs-${self:provider.stage}
+    DYNAMODB_TABLE: billbolo-state-${self:provider.stage}
+    S3_BUCKET: billbolo-pdfs-${self:provider.stage}
     WHATSAPP_API_URL: https://graph.instagram.com/v18.0
 
   iam:
@@ -66,7 +66,7 @@ resources:
     UserStateTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        TableName: billbolo-state-${self:provider.stage}
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: phone_number
@@ -85,7 +85,7 @@ resources:
     PDFBucket:
       Type: AWS::S3::Bucket
       Properties:
-        BucketName: ${self:provider.environment.S3_BUCKET}
+        BucketName: billbolo-pdfs-${self:provider.stage}
         VersioningConfiguration:
           Status: Enabled
         LifecycleConfiguration:
