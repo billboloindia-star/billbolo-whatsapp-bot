@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Checkout — BillBolo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        .checkout-container {
+            max-width: 1000px;
+            margin: 120px auto 0;
+            padding: 2rem;
+        }
+        .checkout-header {
+            text-align: center;
+            margin-bottom: 3rem;
+        }
+        .checkout-header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 0.5rem;
+        }
+        .checkout-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+        }
+        .plan-details {
+            background: var(--bg-secondary);
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .plan-details h2 {
+            color: var(--primary);
+            margin-bottom: 1rem;
+        }
+        .plan-details .price {
+            font-size: 2rem;
+            font-weight: 700;
+            color: var(--primary);
+            margin: 1rem 0;
+        }
+        .plan-details ul {
+            list-style: none;
+            margin: 1.5rem 0;
+        }
+        .plan-details li {
+            padding: 0.5rem 0;
+            color: var(--text-secondary);
+            border-bottom: 1px solid var(--border-color);
+        }
+        .payment-form {
+            background: white;
+            padding: 2rem;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+        }
+        .payment-form h3 {
+            color: var(--text-primary);
+            margin-bottom: 1.5rem;
+        }
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+        .form-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: var(--text-primary);
+            font-weight: 500;
+        }
+        .form-group input {
+            width: 100%;
+            padding: 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            font-size: 1rem;
+        }
+        .payment-methods {
+            margin: 2rem 0;
+        }
+        .payment-methods h4 {
+            margin-bottom: 1rem;
+            color: var(--text-primary);
+        }
+        .payment-option {
+            display: flex;
+            align-items: center;
+            padding: 1rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin-bottom: 0.75rem;
+            cursor: pointer;
+        }
+        .payment-option input[type="radio"] {
+            margin-right: 1rem;
+        }
+        .pay-button {
+            width: 100%;
+            padding: 1rem;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.3s;
+            margin-top: 1rem;
+        }
+        .pay-button:hover {
+            background: var(--primary-dark);
+        }
+        .security-note {
+            text-align: center;
+            margin-top: 1rem;
+            color: var(--text-tertiary);
+            font-size: 0.9rem;
+        }
+        @media (max-width: 768px) {
+            .checkout-content {
+                grid-template-columns: 1fr;
+            }
+            .checkout-header h1 {
+                font-size: 1.75rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo">BillBolo</a>
+            <a href="index.html" class="back-link">← Back to Home</a>
+        </div>
+    </nav>
+
+    <div class="checkout-container">
+        <div class="checkout-header">
+            <h1>Upgrade to BillBolo Pro</h1>
+            <p>Start unlimited quotations today</p>
+        </div>
+
+        <div class="checkout-content">
+            <div class="plan-details">
+                <h2>Pro Monthly Plan</h2>
+                <div class="price">₹499<span style="font-size: 1rem; color: var(--text-secondary);">/month</span></div>
+                <p style="color: var(--text-secondary); margin-bottom: 1.5rem;">Billed monthly. Cancel anytime.</p>
+                <ul>
+                    <li>✓ Unlimited quotations</li>
+                    <li>✓ Expense tracking</li>
+                    <li>✓ Google Sheets sync</li>
+                    <li>✓ Priority support</li>
+                    <li>✓ Professional PDFs</li>
+                </ul>
+                <p style="color: var(--text-secondary); font-size: 0.9rem; margin-top: 1rem;">
+                    Your subscription will renew automatically each month. You can cancel anytime from your account.
+                </p>
+            </div>
+
+            <div class="payment-form">
+                <h3>Payment Details</h3>
+
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" placeholder="Your full name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" placeholder="your@email.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>WhatsApp Number</label>
+                    <input type="tel" placeholder="+91 81234 22932" required>
+                </div>
+
+                <div class="payment-methods">
+                    <h4>Select Payment Method</h4>
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="upi" checked>
+                        <span>💳 UPI (Google Pay, PhonePe, Paytm)</span>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="card">
+                        <span>💰 Credit/Debit Card</span>
+                    </label>
+                    <label class="payment-option">
+                        <input type="radio" name="payment" value="netbanking">
+                        <span>🏦 Net Banking</span>
+                    </label>
+                </div>
+
+                <button class="pay-button" onclick="processPayment()">Pay ₹499 Now</button>
+
+                <div class="security-note">
+                    🔒 Secure payment powered by PayU<br/>
+                    Your payment information is encrypted
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        function processPayment() {
+            alert('Payment integration coming soon!\n\nFor now, message us on WhatsApp:\n+91 81234 22932');
+        }
+    </script>
+</body>
+</html>
