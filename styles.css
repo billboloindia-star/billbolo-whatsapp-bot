@@ -458,7 +458,7 @@ body {
     padding: 2.5rem;
     background: white;
     border-radius: 16px;
-    border: 3px solid var(--primary);
+    border: 3px solid #0ea5e9;
     transition: all 0.3s;
     position: relative;
     box-shadow: 0 10px 30px rgba(14, 165, 233, 0.1);
@@ -470,7 +470,7 @@ body {
 }
 
 .pricing-card.featured {
-    border-color: var(--primary-dark);
+    border-color: #0284c7;
     transform: scale(1.05);
     background: linear-gradient(135deg, #ffffff 0%, #f0f9ff 100%);
     box-shadow: 0 20px 50px rgba(14, 165, 233, 0.2);
