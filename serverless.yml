@@ -110,8 +110,3 @@ custom:
     strip: false
     useDownloadCache: true
     useStaticCache: true
-
-provider:
-  cloudFormation:
-    capabilities:
-      - CAPABILITY_NAMED_IAM
