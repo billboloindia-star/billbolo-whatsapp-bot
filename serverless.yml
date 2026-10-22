@@ -1,0 +1,109 @@
+service: billbolo-whatsapp-bot
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.12
+  region: us-east-1
+  memorySize: 1024
+  timeout: 60
+
+  environment:
+    STAGE: ${self:provider.stage}
+    DYNAMODB_TABLE: ${self:service}-${self:provider.stage}
+    S3_BUCKET: ${self:service}-pdfs-${self:provider.stage}
+    WHATSAPP_API_URL: https://graph.instagram.com/v18.0
+
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource: arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:provider.environment.DYNAMODB_TABLE}
+
+        - Effect: Allow
+          Action:
+            - s3:GetObject
+            - s3:PutObject
+            - s3:DeleteObject
+          Resource: arn:aws:s3:::${self:provider.environment.S3_BUCKET}/*
+
+        - Effect: Allow
+          Action:
+            - logs:CreateLogGroup
+            - logs:CreateLogStream
+            - logs:PutLogEvents
+          Resource: arn:aws:logs:${aws:region}:${aws:accountId}:*
+
+functions:
+  webhook:
+    handler: src/handlers/webhook.handler
+    events:
+      - http:
+          path: webhook
+          method: get
+          cors: true
+      - http:
+          path: webhook
+          method: post
+          cors: true
+
+  payments:
+    handler: src/handlers/payments.handler
+    events:
+      - http:
+          path: payments/webhook
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    UserStateTable:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: phone_number
+            AttributeType: S
+          - AttributeName: created_at
+            AttributeType: S
+        KeySchema:
+          - AttributeName: phone_number
+            KeyType: HASH
+          - AttributeName: created_at
+            KeyType: RANGE
+        TTL:
+          AttributeName: expires_at
+          Enabled: true
+
+    PDFBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.S3_BUCKET}
+        VersioningConfiguration:
+          Status: Enabled
+        LifecycleConfiguration:
+          Rules:
+            - Id: DeleteOldPDFs
+              Status: Enabled
+              ExpirationInDays: 7
+              NoncurrentVersionExpirationInDays: 1
+
+plugins:
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    layer: true
+    slim: true
+    strip: false
+    useDownloadCache: true
+    useStaticCache: true
