@@ -131,6 +131,8 @@ class PDFGenerator:
             story.append(self._build_terms_and_signature(business_info))
 
             def draw_chrome(c, _doc):
+                self._draw_page_border(c)
+                self._draw_watermark(c)
                 self._draw_footer(c, is_pro)
 
             doc.build(story, onFirstPage=draw_chrome, onLaterPages=draw_chrome)
@@ -360,6 +362,34 @@ class PDFGenerator:
             ("RIGHTPADDING", (0, 0), (-1, -1), 0),
         ]))
         return table
+
+    def _draw_page_border(self, c):
+        """Thin border frame around the full page content."""
+        page_width, page_height = letter
+        margin = 0.3 * inch
+        c.saveState()
+        c.setStrokeColor(self.BORDER)
+        c.setLineWidth(0.75)
+        c.rect(
+            margin,
+            margin,
+            page_width - 2 * margin,
+            page_height - 2 * margin,
+            fill=0,
+            stroke=1,
+        )
+        c.restoreState()
+
+    def _draw_watermark(self, c):
+        """Very light, large diagonal BillBolo watermark behind the content."""
+        page_width, page_height = letter
+        c.saveState()
+        c.setFont("Helvetica-Bold", 90)
+        c.setFillColor(self.BRAND_PRIMARY, alpha=0.05)
+        c.translate(page_width / 2, page_height / 2)
+        c.rotate(40)
+        c.drawCentredString(0, 0, "BillBolo")
+        c.restoreState()
 
     def _draw_footer(self, c, is_pro: bool):
         """Draw a thin, understated footer on the canvas."""
