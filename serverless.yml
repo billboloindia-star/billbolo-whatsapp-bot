@@ -54,6 +54,23 @@ provider:
             - logs:PutLogEvents
           Resource: arn:aws:logs:${aws:region}:${aws:accountId}:*
 
+package:
+  patterns:
+    - '!.venv/**'
+    - '!.venv312/**'
+    - '!node_modules/**'
+    - '!.git/**'
+    - '!.serverless/**'
+    - '!scripts/**'
+    - '!assets/**'
+    - '!*.html'
+    - '!*.css'
+    - '!*.js'
+    - '!*.pdf'
+    - '!README.md'
+    - '!.nvmrc'
+    - 'src/**'
+
 functions:
   app:
     handler: src/main.handler
@@ -81,6 +98,11 @@ custom:
     dockerizePip: true
     layer: true
     slim: true
-    strip: false
+    strip: true
     useDownloadCache: true
     useStaticCache: true
+    noDeploy:
+      - boto3
+      - botocore
+      - s3transfer
+      - jmespath
