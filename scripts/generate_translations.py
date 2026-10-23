@@ -90,6 +90,7 @@ EN = {
     "pricing.subtitle": "Start free. Upgrade only when you outgrow what's included.",
     "pricing.perMonth": "/month",
     "pricing.mostPopular": "Most Popular",
+    "pricing.comingSoon": "Coming Soon",
 
     "pricing.free.name": "Free",
     "pricing.free.feature1": "5 quotations/month",

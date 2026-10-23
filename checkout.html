@@ -303,8 +303,8 @@
 
         // Get plan from URL parameter
         const urlParams = new URLSearchParams(window.location.search);
-        const selectedPlan = urlParams.get('plan') || 'growth';
-        const plan = plans[selectedPlan] || plans.growth;
+        const selectedPlan = urlParams.get('plan') || 'starter';
+        const plan = plans[selectedPlan] || plans.starter;
 
         // Update page with selected plan
         document.getElementById('checkoutTitle').textContent = plan.title;

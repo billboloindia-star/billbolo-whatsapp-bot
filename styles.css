@@ -989,6 +989,28 @@ body.lang-telugu h3 {
     border: 2px solid var(--primary);
 }
 
+.badge-soon {
+    background: linear-gradient(135deg, #94a3b8, #64748b);
+    box-shadow: 0 8px 20px rgba(100, 116, 139, 0.25);
+}
+
+.pricing-card-soon {
+    opacity: 0.72;
+}
+
+.plan-button-disabled {
+    background: #e2e8f0;
+    color: #64748b;
+    border: 2px solid #e2e8f0;
+    cursor: not-allowed;
+}
+
+.plan-button-disabled:hover {
+    background: #e2e8f0;
+    color: #64748b;
+    transform: none;
+}
+
 .free-btn:hover, .yearly-btn:hover {
     background: var(--primary);
     color: white;
