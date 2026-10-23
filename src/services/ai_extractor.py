@@ -42,6 +42,12 @@ class ExtractedData(BaseModel):
     grand_total: Optional[float] = Field(None, description="Final total with tax")
     currency: str = Field(default="INR", description="Currency code")
     language_detected: Optional[str] = Field(None, description="Detected language (hi, en, etc)")
+    seller_name: Optional[str] = Field(None, description="Name of the selling business/shop, if printed on a bill")
+    seller_gstin: Optional[str] = Field(None, description="Seller's GSTIN, if printed on a bill")
+    seller_address: Optional[str] = Field(None, description="Seller's address/place, if printed on a bill")
+    billing_address: Optional[str] = Field(None, description="Billing address, if printed on a bill")
+    shipping_address: Optional[str] = Field(None, description="Shipping address, if printed on a bill")
+    order_date: Optional[str] = Field(None, description="Order/invoice date, if printed on a bill")
 
 
 class GeminiExtractor:
@@ -125,7 +131,13 @@ JSON Schema:
     "gst_amount": null,
     "grand_total": null,
     "currency": "INR",
-    "language_detected": "hi|en|other"
+    "language_detected": "hi|en|other",
+    "seller_name": "Name of the selling business/shop printed on the bill (or null)",
+    "seller_gstin": "Seller's GSTIN printed on the bill (or null)",
+    "seller_address": "Seller's address/place printed on the bill (or null)",
+    "billing_address": "Billing address printed on the bill (or null)",
+    "shipping_address": "Shipping address printed on the bill (or null, if same as billing leave shipping_address null)",
+    "order_date": "Order/invoice date printed on the bill, as written (or null)"
 }}
 
 Rules:
@@ -136,6 +148,7 @@ Rules:
 5. Detect language and set language_detected field
 6. For voice notes: user may say "Quotation for Sharma Ji, 80 sq ft wardrobe at 1,600 per sq ft" — parse exactly
 7. If a bill/receipt shows an HSN or SAC code next to an item (common on GST invoices), capture it exactly as printed in that item's hsn_code field. Leave it null if the bill has no HSN/SAC codes.
+8. If a bill/receipt shows the seller's business name, GSTIN, or address (usually printed at the top as the "Sold By" / letterhead), capture them in seller_name, seller_gstin, seller_address. Capture billing_address and shipping_address separately if both are printed (common on e-commerce invoices) - leave shipping_address null if only one address is shown. Capture order_date/invoice_date exactly as printed in order_date. Leave any of these null if not present on the bill - do not guess or invent them.
 
 Return ONLY the JSON object, no other text."""
 

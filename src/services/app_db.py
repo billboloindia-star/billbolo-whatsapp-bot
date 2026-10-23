@@ -260,6 +260,12 @@ class AppDBClient:
         amount: float,
         notes: Optional[str] = None,
         items: Optional[list[dict]] = None,
+        seller_name: Optional[str] = None,
+        seller_gstin: Optional[str] = None,
+        seller_address: Optional[str] = None,
+        billing_address: Optional[str] = None,
+        shipping_address: Optional[str] = None,
+        order_date: Optional[str] = None,
     ) -> Optional[str]:
         try:
             expense_id = str(uuid.uuid4())
@@ -273,6 +279,12 @@ class AppDBClient:
                     "amount": _to_decimal(amount),
                     "notes": notes or "",
                     "items": _to_decimal(items or []),
+                    "seller_name": seller_name or "",
+                    "seller_gstin": seller_gstin or "",
+                    "seller_address": seller_address or "",
+                    "billing_address": billing_address or "",
+                    "shipping_address": shipping_address or "",
+                    "order_date": order_date or "",
                     "created_at": created_at,
                 }
             )

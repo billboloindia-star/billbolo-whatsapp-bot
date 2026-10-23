@@ -296,12 +296,19 @@ class ExpensesHandler:
                 return JSONResponse(status_code=422, content={"error": "Couldn't read that bill/receipt image."})
 
             items = [item.model_dump() for item in extracted.items]
+            vendor = extracted.seller_name or extracted.client_name
             expense_id = self.db.create_expense(
                 user_id=user_id,
-                vendor=extracted.client_name,
+                vendor=vendor,
                 amount=extracted.grand_total or 0,
                 notes=extracted.notes,
                 items=items,
+                seller_name=extracted.seller_name,
+                seller_gstin=extracted.seller_gstin,
+                seller_address=extracted.seller_address,
+                billing_address=extracted.billing_address,
+                shipping_address=extracted.shipping_address,
+                order_date=extracted.order_date,
             )
             if not expense_id:
                 return JSONResponse(status_code=500, content={"error": "Failed to save expense."})
@@ -310,10 +317,16 @@ class ExpensesHandler:
                 status_code=201,
                 content={
                     "expense_id": expense_id,
-                    "vendor": extracted.client_name,
+                    "vendor": vendor,
                     "amount": extracted.grand_total or 0,
                     "notes": extracted.notes,
                     "items": items,
+                    "seller_name": extracted.seller_name,
+                    "seller_gstin": extracted.seller_gstin,
+                    "seller_address": extracted.seller_address,
+                    "billing_address": extracted.billing_address,
+                    "shipping_address": extracted.shipping_address,
+                    "order_date": extracted.order_date,
                 },
             )
         except Exception as e:
