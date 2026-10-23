@@ -7,21 +7,36 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 
 from src.services.ai_extractor import GeminiExtractor
+from src.services.database import DynamoDBClient
 from src.services.pdf_generator import PDFGenerator
 
 logger = logging.getLogger(__name__)
+
+DAILY_LIMIT_PER_IP = 5
 
 
 class WebDemoHandler:
     """Generates a sample quotation PDF from text input on the web demo page."""
 
-    def __init__(self, extractor: GeminiExtractor, pdf_gen: PDFGenerator):
+    def __init__(self, extractor: GeminiExtractor, pdf_gen: PDFGenerator, db_client: DynamoDBClient):
         self.extractor = extractor
         self.pdf_gen = pdf_gen
+        self.db = db_client
 
     async def handle_generate(self, request: Request) -> Response:
         """Accept a text description and return the extracted data + PDF."""
         try:
+            client_ip = self._get_client_ip(request)
+            if not self.db.check_rate_limit(client_ip, limit=DAILY_LIMIT_PER_IP):
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": f"You've reached today's limit of {DAILY_LIMIT_PER_IP} free demo "
+                        "quotations. Message BillBolo on WhatsApp for unlimited use: "
+                        "wa.me/918123422932"
+                    },
+                )
+
             body = await request.json()
             text = (body.get("text") or "").strip()
 
@@ -76,10 +91,20 @@ class WebDemoHandler:
                 content={"error": "Something went wrong. Please try again."},
             )
 
+    def _get_client_ip(self, request: Request) -> str:
+        """Best-effort client IP extraction behind API Gateway/Mangum."""
+        forwarded_for = request.headers.get("x-forwarded-for")
+        if forwarded_for:
+            return forwarded_for.split(",")[0].strip()
+        if request.client and request.client.host:
+            return request.client.host
+        return "unknown"
+
 
 def create_web_demo_handler() -> WebDemoHandler:
     """Create WebDemoHandler with dependencies injected."""
     return WebDemoHandler(
         extractor=GeminiExtractor(),
         pdf_gen=PDFGenerator(),
+        db_client=DynamoDBClient(),
     )

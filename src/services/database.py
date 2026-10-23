@@ -156,6 +156,44 @@ class DynamoDBClient:
             logger.error(f"Failed to get session draft: {e}")
             return None
 
+    def check_rate_limit(self, identifier: str, limit: int) -> bool:
+        """Atomically check and increment a daily rate-limit counter.
+
+        Returns True if the request is allowed (and counts it), False if
+        the identifier has hit its daily limit. Fails open (allows the
+        request) on DynamoDB errors so an infra hiccup never blocks
+        legitimate traffic - this is a soft abuse guard, not a security
+        boundary.
+        """
+        today = datetime.utcnow().strftime("%Y-%m-%d")
+        rate_key = f"ratelimit#{identifier}"
+        try:
+            self.table.update_item(
+                Key={"phone_number": rate_key, "created_at": today},
+                UpdateExpression=(
+                    "SET request_count = if_not_exists(request_count, :zero) + :inc, "
+                    "expires_at = :ttl"
+                ),
+                ConditionExpression=(
+                    "attribute_not_exists(request_count) OR request_count < :limit"
+                ),
+                ExpressionAttributeValues={
+                    ":zero": 0,
+                    ":inc": 1,
+                    ":limit": limit,
+                    ":ttl": int((datetime.utcnow() + timedelta(days=2)).timestamp()),
+                },
+            )
+            return True
+        except ClientError as e:
+            if e.response.get("Error", {}).get("Code") == "ConditionalCheckFailedException":
+                return False
+            logger.error(f"Rate limit check failed for {rate_key}: {e}")
+            return True
+        except BotoCoreError as e:
+            logger.error(f"Rate limit check failed for {rate_key}: {e}")
+            return True
+
     def _get_user_created_at(self, phone_number: str) -> str:
         """Helper to get user's creation timestamp (required for composite key)."""
         try:
