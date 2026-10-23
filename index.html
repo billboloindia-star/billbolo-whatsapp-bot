@@ -10,6 +10,8 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+
     <!-- Navigation -->
     <nav class="navbar">
         <div class="nav-container">
@@ -83,33 +85,45 @@
 
     <!-- Trust Strip -->
     <section class="trust-strip">
-        <div class="trust-strip-inner">
-            <span>⚡ 5-second turnaround</span>
-            <span>📱 No app to install</span>
-            <span>🔒 Bank-grade encryption</span>
-            <span>📊 Synced to your own Google Sheet</span>
+        <div class="trust-strip-inner reveal">
+            <span class="trust-item">
+                <span class="icon-badge icon-badge-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
+                5-second turnaround
+            </span>
+            <span class="trust-item">
+                <span class="icon-badge icon-badge-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg></span>
+                No app to install
+            </span>
+            <span class="trust-item">
+                <span class="icon-badge icon-badge-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
+                Bank-grade encryption
+            </span>
+            <span class="trust-item">
+                <span class="icon-badge icon-badge-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
+                Synced to your own Google Sheet
+            </span>
         </div>
     </section>
 
     <!-- Problem Section -->
     <section class="problem" id="about">
-        <div class="section-header">
+        <div class="section-header reveal">
             <h2>Running a business shouldn't feel like a second job</h2>
             <p>Three everyday headaches — solved without leaving WhatsApp.</p>
         </div>
         <div class="problem-grid">
-            <div class="problem-card">
-                <div class="problem-icon">🐢</div>
+            <div class="problem-card reveal" style="transition-delay: 0s">
+                <div class="problem-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
                 <h3>Quotes that take hours, not seconds</h3>
                 <p>By the time you've typed up a quote, your customer has already called the next contractor on their list.</p>
             </div>
-            <div class="problem-card">
-                <div class="problem-icon">🧾</div>
+            <div class="problem-card reveal" style="transition-delay: 0.1s">
+                <div class="problem-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 16 12 14 15 10 15 8 12 2 12"></polyline><path d="M5.45 5.11L2 12v6a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-6l-3.45-6.89A2 2 0 0 0 16.76 4H7.24a2 2 0 0 0-1.79 1.11z"></path></svg></div>
                 <h3>Expenses that vanish into WhatsApp chats</h3>
                 <p>Paper bills get lost. Photos get buried. Come tax season, nobody remembers what was spent where.</p>
             </div>
-            <div class="problem-card">
-                <div class="problem-icon">🧮</div>
+            <div class="problem-card reveal" style="transition-delay: 0.2s">
+                <div class="problem-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="2" y1="14" x2="6" y2="14"></line><line x1="10" y1="8" x2="14" y2="8"></line><line x1="18" y1="16" x2="22" y2="16"></line></svg></div>
                 <h3>Accounting software nobody has time to learn</h3>
                 <p>Tally and Zoho are built for accountants, not for someone running a site or a shop. You need five minutes, not a training course.</p>
             </div>
@@ -118,38 +132,38 @@
 
     <!-- Features Section -->
     <section class="features" id="features">
-        <div class="section-header">
+        <div class="section-header reveal">
             <h2>Everything your business needs. Nothing to install.</h2>
             <p>One WhatsApp number. Six jobs handled automatically.</p>
         </div>
         <div class="features-grid">
-            <div class="feature-card">
-                <div class="feature-icon">🎤</div>
+            <div class="feature-card reveal" style="transition-delay: 0s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></div>
                 <h3>Voice-to-Quotation</h3>
                 <p>Record a 10-second voice note describing the job. Get a polished, branded PDF quotation back in under 5 seconds.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">📸</div>
+            <div class="feature-card reveal" style="transition-delay: 0.08s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div>
                 <h3>Snap-to-Expense</h3>
                 <p>Photograph any bill or receipt. Gemini reads the vendor, items, amount, and date — no typing, no filing.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">📊</div>
+            <div class="feature-card reveal" style="transition-delay: 0.16s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
                 <h3>Auto-Synced Books</h3>
                 <p>Every quotation and expense lands in your own Google Sheet in real time. Your accountant (or you, come March) will thank you.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">📄</div>
+            <div class="feature-card reveal" style="transition-delay: 0.24s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
                 <h3>Branded, Professional PDFs</h3>
                 <p>Every document carries your business name and details — looks like it came from a proper office, not a notebook page.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">⚡</div>
+            <div class="feature-card reveal" style="transition-delay: 0.32s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
                 <h3>5-Second Turnaround</h3>
                 <p>Powered by Google Gemini. While the competition is still typing a reply, your quote is already in the customer's inbox.</p>
             </div>
-            <div class="feature-card">
-                <div class="feature-icon">🔒</div>
+            <div class="feature-card reveal" style="transition-delay: 0.4s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
                 <h3>Bank-Grade Security, Zero New Apps</h3>
                 <p>Encrypted end-to-end. No downloads, no logins, no training — just the WhatsApp you already check 50 times a day.</p>
             </div>
@@ -158,24 +172,24 @@
 
     <!-- How It Works Section -->
     <section class="how-it-works">
-        <div class="section-header">
+        <div class="section-header reveal">
             <h2>From voice note to paid invoice — in one chat</h2>
             <p>No forms. No dashboards. No new habits.</p>
         </div>
         <div class="workflow">
-            <div class="workflow-step">
+            <div class="workflow-step reveal" style="transition-delay: 0s">
                 <div class="step-num">1</div>
                 <h3>Send it</h3>
                 <p>Voice note or photo, straight to BillBolo on WhatsApp</p>
             </div>
             <div class="workflow-arrow">→</div>
-            <div class="workflow-step">
+            <div class="workflow-step reveal" style="transition-delay: 0.15s">
                 <div class="step-num">2</div>
                 <h3>AI reads it</h3>
                 <p>Gemini extracts every item, quantity and price instantly</p>
             </div>
             <div class="workflow-arrow">→</div>
-            <div class="workflow-step">
+            <div class="workflow-step reveal" style="transition-delay: 0.3s">
                 <div class="step-num">3</div>
                 <h3>It's done</h3>
                 <p>PDF lands in the chat. Expense is already logged.</p>
@@ -185,12 +199,12 @@
 
     <!-- Pricing Section -->
     <section class="pricing" id="pricing">
-        <div class="section-header">
+        <div class="section-header reveal">
             <h2>Pricing that pays for itself with one saved deal</h2>
             <p>Start free. Upgrade only when you outgrow 5 quotes a month.</p>
         </div>
         <div class="pricing-cards">
-            <div class="pricing-card">
+            <div class="pricing-card reveal" style="transition-delay: 0s">
                 <h3>Free</h3>
                 <p class="price">₹0</p>
                 <ul>
@@ -200,7 +214,7 @@
                 </ul>
                 <a href="checkout.html?plan=free" class="plan-button free-btn">Get Started</a>
             </div>
-            <div class="pricing-card featured">
+            <div class="pricing-card featured reveal" style="transition-delay: 0.1s">
                 <div class="badge">Most Popular</div>
                 <h3>Pro</h3>
                 <p class="price">₹499<span>/month</span></p>
@@ -212,7 +226,7 @@
                 </ul>
                 <a href="checkout.html?plan=pro" class="plan-button pro-btn">Choose Pro</a>
             </div>
-            <div class="pricing-card">
+            <div class="pricing-card reveal" style="transition-delay: 0.2s">
                 <h3>Pro Yearly</h3>
                 <p class="price">₹4,999<span>/year</span></p>
                 <p class="discount">Save 16%</p>
@@ -228,7 +242,7 @@
     </section>
 
     <!-- CTA Section -->
-    <section class="cta-section" id="contact">
+    <section class="cta-section reveal" id="contact">
         <h2>Stop losing deals to slow quotes.</h2>
         <p>Message BillBolo on WhatsApp right now and send your first voice note — watch the PDF land in under 5 seconds.</p>
         <a href="https://wa.me/918123422932" target="_blank" class="cta-button">Message BillBolo →</a>

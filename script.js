@@ -1,38 +1,3 @@
-// Smooth scroll
-function scrollTo(selector) {
-    const element = document.querySelector(selector);
-    if (element) {
-        element.scrollIntoView({ behavior: 'smooth' });
-    }
-}
-
-// Privacy Policy Modal
-function closePrivacy() {
-    const modal = document.getElementById('privacy-modal');
-    modal.style.display = 'none';
-}
-
-// Privacy triggers
-document.addEventListener('DOMContentLoaded', () => {
-    const privacyTriggers = document.querySelectorAll('.privacy-trigger');
-    const modal = document.getElementById('privacy-modal');
-
-    privacyTriggers.forEach(trigger => {
-        trigger.addEventListener('click', (e) => {
-            e.preventDefault();
-            modal.style.display = 'block';
-        });
-    });
-});
-
-// Close modal when clicking outside
-window.addEventListener('click', (event) => {
-    const modal = document.getElementById('privacy-modal');
-    if (event.target === modal) {
-        modal.style.display = 'none';
-    }
-});
-
 // Navbar blur effect on scroll
 window.addEventListener('scroll', () => {
     const navbar = document.querySelector('.navbar');
@@ -43,6 +8,27 @@ window.addEventListener('scroll', () => {
         navbar.style.background = 'rgba(255, 255, 255, 0.7)';
         navbar.style.boxShadow = 'none';
     }
+});
+
+// Scroll-triggered reveal animations
+document.addEventListener('DOMContentLoaded', () => {
+    const revealEls = document.querySelectorAll('.reveal');
+
+    if (!('IntersectionObserver' in window) || revealEls.length === 0) {
+        revealEls.forEach(el => el.classList.add('is-visible'));
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                entry.target.classList.add('is-visible');
+                observer.unobserve(entry.target);
+            }
+        });
+    }, { threshold: 0.15, rootMargin: '0px 0px -40px 0px' });
+
+    revealEls.forEach(el => observer.observe(el));
 });
 
 console.log('🧮 BillBolo - Premium Landing Page Loaded');
