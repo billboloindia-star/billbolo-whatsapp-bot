@@ -3,8 +3,9 @@
 import base64
 import logging
 
-from fastapi import Request, Response, UploadFile
+from fastapi import Request, Response
 from fastapi.responses import JSONResponse
+from starlette.datastructures import UploadFile
 
 from src.services.ai_extractor import GeminiExtractor
 from src.services.database import DynamoDBClient
