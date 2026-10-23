@@ -1,11 +1,11 @@
 """Gemini Flash API multimodal parser for extracting structured data from audio/images."""
 
-import base64
 import json
 import logging
 from typing import Optional
 
-import google.generativeai as genai
+from google import genai
+from google.genai import types
 from pydantic import BaseModel, Field, ValidationError
 
 from src.config import settings
@@ -46,47 +46,51 @@ class ExtractedData(BaseModel):
 class GeminiExtractor:
     """Gemini Flash multimodal parser with strict JSON validation."""
 
+    MODEL_NAME = "gemini-flash-lite-latest"
+
     def __init__(self):
-        genai.configure(api_key=settings.gemini_api_key)
-        self.model = genai.GenerativeModel("gemini-1.5-flash")
+        self.client = genai.Client(api_key=settings.gemini_api_key)
 
     def extract_from_audio(self, audio_bytes: bytes, audio_mime_type: str = "audio/ogg") -> Optional[ExtractedData]:
         """Extract structured data from audio (voice note)."""
         try:
-            audio_base64 = base64.standard_b64encode(audio_bytes).decode("utf-8")
             prompt = self._build_extraction_prompt("voice note")
-
-            response = self.model.generate_content(
-                [
-                    {
-                        "mime_type": audio_mime_type,
-                        "data": audio_base64,
-                    },
+            response = self.client.models.generate_content(
+                model=self.MODEL_NAME,
+                contents=[
+                    types.Part.from_bytes(data=audio_bytes, mime_type=audio_mime_type),
                     prompt,
-                ]
+                ],
             )
-
             return self._parse_response(response.text)
         except Exception as e:
             logger.error(f"Failed to extract from audio: {e}")
             return None
 
+    def extract_from_text(self, text: str) -> Optional[ExtractedData]:
+        """Extract structured data from a plain text description."""
+        try:
+            prompt = self._build_extraction_prompt("text description")
+            response = self.client.models.generate_content(
+                model=self.MODEL_NAME,
+                contents=[text, prompt],
+            )
+            return self._parse_response(response.text)
+        except Exception as e:
+            logger.error(f"Failed to extract from text: {e}")
+            return None
+
     def extract_from_image(self, image_bytes: bytes, image_mime_type: str = "image/jpeg") -> Optional[ExtractedData]:
         """Extract structured data from bill/receipt image."""
         try:
-            image_base64 = base64.standard_b64encode(image_bytes).decode("utf-8")
             prompt = self._build_extraction_prompt("bill/receipt image")
-
-            response = self.model.generate_content(
-                [
-                    {
-                        "mime_type": image_mime_type,
-                        "data": image_base64,
-                    },
+            response = self.client.models.generate_content(
+                model=self.MODEL_NAME,
+                contents=[
+                    types.Part.from_bytes(data=image_bytes, mime_type=image_mime_type),
                     prompt,
-                ]
+                ],
             )
-
             return self._parse_response(response.text)
         except Exception as e:
             logger.error(f"Failed to extract from image: {e}")

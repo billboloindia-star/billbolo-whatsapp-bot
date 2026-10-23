@@ -150,7 +150,7 @@ class PDFGenerator:
     def _build_items_table(self, extracted_data: ExtractedData) -> Table:
         """Build the line items table."""
         table_data = [
-            ["Item", "Qty", "Rate (₹)", "Unit", "Amount (₹)"],
+            ["Item", "Qty", "Rate (Rs.)", "Unit", "Amount (Rs.)"],
         ]
 
         for item in extracted_data.items:
@@ -187,9 +187,9 @@ class PDFGenerator:
     def _build_totals_table(self, extracted_data: ExtractedData) -> Table:
         """Build the totals summary table."""
         totals_data = [
-            ["Subtotal", f"₹{extracted_data.total_before_gst:,.2f}"],
-            [f"GST @ {extracted_data.gst_percentage}%", f"₹{extracted_data.gst_amount:,.2f}"],
-            ["GRAND TOTAL", f"₹{extracted_data.grand_total:,.2f}"],
+            ["Subtotal", f"Rs. {extracted_data.total_before_gst:,.2f}"],
+            [f"GST @ {extracted_data.gst_percentage}%", f"Rs. {extracted_data.gst_amount:,.2f}"],
+            ["GRAND TOTAL", f"Rs. {extracted_data.grand_total:,.2f}"],
         ]
 
         table = Table(totals_data, colWidths=[4.5 * inch, 1.5 * inch])

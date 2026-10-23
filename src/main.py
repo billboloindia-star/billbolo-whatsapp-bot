@@ -10,6 +10,7 @@ from mangum import Mangum
 from src.config import settings
 from src.handlers.webhook import create_webhook_handler
 from src.handlers.payments import create_payment_handler
+from src.handlers.web_demo import create_web_demo_handler
 
 # Configure logging
 logging.basicConfig(
@@ -22,6 +23,7 @@ logger = logging.getLogger(__name__)
 # Initialize handlers
 webhook_handler = create_webhook_handler()
 payment_handler = create_payment_handler()
+web_demo_handler = create_web_demo_handler()
 
 
 @asynccontextmanager
@@ -70,6 +72,13 @@ async def payment_webhook(request: Request):
     """Cashfree payment webhook endpoint."""
     logger.debug("Payment webhook received")
     return await payment_handler.handle_webhook(request)
+
+
+@app.post("/api/web/quotation")
+async def web_demo_quotation(request: Request):
+    """Public web demo endpoint - generate a sample quotation from text input."""
+    logger.debug("Web demo quotation request received")
+    return await web_demo_handler.handle_generate(request)
 
 
 @app.exception_handler(Exception)
