@@ -72,17 +72,16 @@ async function loadLanguage(lang) {
     document.documentElement.lang = lang;
     applyLangScriptClass(lang);
 
-    if (lang === 'en') {
-        return;
-    }
-
+    // English is just another locale file (identity mapping), not a no-op -
+    // once another language has overwritten the DOM text, switching back to
+    // English needs to actively restore it from locales/en.json.
     try {
         const res = await fetch(`locales/${lang}.json`);
         if (!res.ok) throw new Error(`Failed to load ${lang}.json`);
         const translations = await res.json();
         applyTranslations(translations);
     } catch (err) {
-        console.error('Language load failed, falling back to English:', err);
+        console.error('Language load failed:', err);
     }
 }
 
