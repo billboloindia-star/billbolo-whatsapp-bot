@@ -364,17 +364,20 @@ class PDFGenerator:
         return table
 
     def _draw_page_border(self, c):
-        """Thin border frame around the full page content."""
+        """Thin border frame around the page. Bottom edge sits below the
+        footer content with its own clearance so the two never collide."""
         page_width, page_height = letter
-        margin = 0.3 * inch
+        side_margin = 0.3 * inch
+        bottom_margin = 0.12 * inch
+
         c.saveState()
         c.setStrokeColor(self.BORDER)
         c.setLineWidth(0.75)
         c.rect(
-            margin,
-            margin,
-            page_width - 2 * margin,
-            page_height - 2 * margin,
+            side_margin,
+            bottom_margin,
+            page_width - 2 * side_margin,
+            page_height - side_margin - bottom_margin,
             fill=0,
             stroke=1,
         )
