@@ -1122,3 +1122,22 @@ body {
         grid-template-columns: 1fr;
     }
 }
+
+@media (max-width: 640px) {
+    .nav-container {
+        flex-wrap: wrap;
+        justify-content: center;
+        gap: 0.75rem;
+        padding: 1rem;
+    }
+
+    .nav-links {
+        width: 100%;
+        justify-content: center;
+        gap: 1.5rem;
+    }
+
+    .nav-links a {
+        font-size: 0.85rem;
+    }
+}
