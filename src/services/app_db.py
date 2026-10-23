@@ -136,6 +136,30 @@ class AppDBClient:
             logger.error(f"Failed to get user by phone: {e}")
             return None
 
+    def update_business_name(self, user_id: str, business_name: str) -> bool:
+        try:
+            self.table.update_item(
+                Key={"user_id": user_id, "sort_key": "PROFILE"},
+                UpdateExpression="SET business_name = :b",
+                ExpressionAttributeValues={":b": business_name},
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to update business name: {e}")
+            return False
+
+    def update_password_hash(self, user_id: str, password_hash: str) -> bool:
+        try:
+            self.table.update_item(
+                Key={"user_id": user_id, "sort_key": "PROFILE"},
+                UpdateExpression="SET password_hash = :p",
+                ExpressionAttributeValues={":p": password_hash},
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to update password: {e}")
+            return False
+
     # ---- Clients ----------------------------------------------------------
 
     def create_client(

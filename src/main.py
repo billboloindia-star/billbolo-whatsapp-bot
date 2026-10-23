@@ -171,6 +171,21 @@ async def mark_ledger_paid(ledger_id: str, user_id: str = Depends(get_current_us
     return await app_api["ledger"].mark_paid(user_id, ledger_id)
 
 
+@app.get("/api/profile")
+async def get_profile(user_id: str = Depends(get_current_user_id)):
+    return await app_api["profile"].get(user_id)
+
+
+@app.patch("/api/profile")
+async def update_profile(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["profile"].update(user_id, request)
+
+
+@app.post("/api/profile/change-password")
+async def change_password(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["profile"].change_password(user_id, request)
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Global exception handler for unhandled errors."""

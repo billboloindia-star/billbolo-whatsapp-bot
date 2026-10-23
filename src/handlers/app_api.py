@@ -374,6 +374,73 @@ class LedgerHandler:
         return JSONResponse(status_code=200, content={"success": True})
 
 
+class ProfileHandler:
+    def __init__(self, db: AppDBClient):
+        self.db = db
+
+    async def get(self, user_id: str) -> Response:
+        user = self.db.get_user_by_id(user_id)
+        if not user:
+            return JSONResponse(status_code=404, content={"error": "Account not found."})
+
+        admin = is_admin_phone(user.get("phone_number", ""))
+        quotations_used = self.db.count_this_month(user_id, "QUOTATION#")
+        expenses_used = self.db.count_this_month(user_id, "EXPENSE#")
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "user": _user_public(user),
+                "plan": {
+                    "name": "Admin" if admin else "Free",
+                    "unlimited": admin,
+                    "quotations_used": quotations_used,
+                    "quotations_limit": None if admin else FREE_MONTHLY_QUOTATION_LIMIT,
+                    "expenses_used": expenses_used,
+                    "expenses_limit": None if admin else FREE_MONTHLY_EXPENSE_LIMIT,
+                },
+            },
+        )
+
+    async def update(self, user_id: str, request: Request) -> Response:
+        try:
+            body = await request.json()
+            business_name = (body.get("business_name") or "").strip()
+            if not business_name:
+                return JSONResponse(status_code=400, content={"error": "Business name is required."})
+
+            ok = self.db.update_business_name(user_id, business_name)
+            if not ok:
+                return JSONResponse(status_code=500, content={"error": "Failed to update profile."})
+            return JSONResponse(status_code=200, content={"success": True})
+        except Exception as e:
+            logger.error(f"Update profile failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    async def change_password(self, user_id: str, request: Request) -> Response:
+        try:
+            body = await request.json()
+            current_password = body.get("current_password") or ""
+            new_password = body.get("new_password") or ""
+
+            if len(new_password) < 6:
+                return JSONResponse(
+                    status_code=400, content={"error": "New password must be at least 6 characters."}
+                )
+
+            user = self.db.get_user_by_id(user_id)
+            if not user or not verify_password(current_password, user.get("password_hash", "")):
+                return JSONResponse(status_code=401, content={"error": "Current password is incorrect."})
+
+            ok = self.db.update_password_hash(user_id, hash_password(new_password))
+            if not ok:
+                return JSONResponse(status_code=500, content={"error": "Failed to update password."})
+            return JSONResponse(status_code=200, content={"success": True})
+        except Exception as e:
+            logger.error(f"Change password failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+
 def _strip_keys(items: list[dict]) -> list[dict]:
     """Drop internal DynamoDB keys (user_id, sort_key) before returning to the client."""
     return [{k: v for k, v in item.items() if k not in ("user_id", "sort_key")} for item in items]
@@ -392,4 +459,5 @@ def create_app_api_handlers():
         "quotations": QuotationsHandler(db, extractor, pdf_gen, storage),
         "expenses": ExpensesHandler(db, extractor),
         "ledger": LedgerHandler(db),
+        "profile": ProfileHandler(db),
     }
