@@ -327,3 +327,18 @@ class AppDBClient:
         except (BotoCoreError, ClientError) as e:
             logger.error(f"Failed to list items with prefix {prefix}: {e}")
             return []
+
+    def count_this_month(self, user_id: str, entity_prefix: str) -> int:
+        """Count how many items of a given type (QUOTATION#, EXPENSE#, ...) a
+        user has created in the current calendar month - used for Free-tier quotas."""
+        month_prefix = f"{entity_prefix}{datetime.now(timezone.utc).strftime('%Y-%m')}"
+        try:
+            response = self.table.query(
+                KeyConditionExpression=Key("user_id").eq(user_id)
+                & Key("sort_key").begins_with(month_prefix),
+                Select="COUNT",
+            )
+            return response.get("Count", 0)
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to count items for quota check ({entity_prefix}): {e}")
+            return 0

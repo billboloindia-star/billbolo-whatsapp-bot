@@ -11,7 +11,7 @@ from starlette.datastructures import UploadFile
 
 from src.services.ai_extractor import GeminiExtractor
 from src.services.app_db import AppDBClient
-from src.services.auth import create_jwt, hash_password, verify_password
+from src.services.auth import create_jwt, hash_password, is_admin_phone, verify_password
 from src.services.pdf_generator import PDFGenerator
 from src.services.storage import PDFStorage
 
@@ -19,6 +19,27 @@ logger = logging.getLogger(__name__)
 
 EMAIL_RE = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 MAX_AUDIO_BYTES = 10 * 1024 * 1024
+
+FREE_MONTHLY_QUOTATION_LIMIT = 5
+FREE_MONTHLY_EXPENSE_LIMIT = 5
+
+QUOTA_EXCEEDED_MESSAGE = (
+    "You've reached this month's free limit. Message BillBolo on WhatsApp "
+    "or upgrade your plan for unlimited use."
+)
+
+
+async def _check_quota(db: AppDBClient, user_id: str, entity_prefix: str, limit: int) -> Response | None:
+    """Returns a 429 response if the user is over their free monthly quota for
+    this entity type, or None if they're clear to proceed. Admin phone bypasses
+    entirely - checked first to avoid a wasted DB read on every admin call."""
+    user = db.get_user_by_id(user_id)
+    if user and is_admin_phone(user.get("phone_number", "")):
+        return None
+
+    if db.count_this_month(user_id, entity_prefix) >= limit:
+        return JSONResponse(status_code=429, content={"error": QUOTA_EXCEEDED_MESSAGE})
+    return None
 
 
 def _user_public(user: dict) -> dict:
@@ -151,6 +172,12 @@ class QuotationsHandler:
 
     async def create_from_text(self, user_id: str, request: Request) -> Response:
         try:
+            quota_response = await _check_quota(
+                self.db, user_id, "QUOTATION#", FREE_MONTHLY_QUOTATION_LIMIT
+            )
+            if quota_response:
+                return quota_response
+
             body = await request.json()
             text = (body.get("text") or "").strip()
             if not text:
@@ -166,6 +193,12 @@ class QuotationsHandler:
 
     async def create_from_audio(self, user_id: str, request: Request) -> Response:
         try:
+            quota_response = await _check_quota(
+                self.db, user_id, "QUOTATION#", FREE_MONTHLY_QUOTATION_LIMIT
+            )
+            if quota_response:
+                return quota_response
+
             form = await request.form()
             audio_file = form.get("audio")
 
@@ -241,6 +274,12 @@ class ExpensesHandler:
 
     async def create(self, user_id: str, request: Request) -> Response:
         try:
+            quota_response = await _check_quota(
+                self.db, user_id, "EXPENSE#", FREE_MONTHLY_EXPENSE_LIMIT
+            )
+            if quota_response:
+                return quota_response
+
             form = await request.form()
             image_file = form.get("image")
 

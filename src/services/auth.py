@@ -17,6 +17,16 @@ _pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 JWT_ALGORITHM = "HS256"
 JWT_EXPIRY_DAYS = 30
 
+# Super admin: this phone number bypasses all usage quotas, regardless of how
+# it's formatted at signup (+91, spaces, etc.) - compared by digit suffix.
+ADMIN_PHONE_SUFFIX = "8123422932"
+
+
+def is_admin_phone(phone_number: str) -> bool:
+    """Check if a phone number matches the super admin, ignoring formatting."""
+    digits = "".join(c for c in (phone_number or "") if c.isdigit())
+    return digits.endswith(ADMIN_PHONE_SUFFIX)
+
 
 def hash_password(password: str) -> str:
     """Hash a plaintext password for storage."""
