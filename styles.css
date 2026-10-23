@@ -336,6 +336,23 @@ body {
     border-color: white;
 }
 
+.hero-try-web {
+    margin-top: 1.5rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 0.9rem;
+}
+
+.hero-try-web a {
+    color: white;
+    font-weight: 700;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.hero-try-web a:hover {
+    color: #e0f2fe;
+}
+
 .hero-visual {
     display: flex;
     justify-content: center;
