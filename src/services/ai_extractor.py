@@ -100,7 +100,7 @@ class GeminiExtractor:
         """Build the extraction prompt for Gemini."""
         return f"""You are a professional bill/quotation extraction assistant for Indian businesses.
 
-Extract structured data from this {source_type}. The user may speak in Hindi, Hinglish, or English.
+Extract structured data from this {source_type}. The user may speak in English, Hindi, Bengali, Tamil, Telugu, Marathi, Hinglish, or a mix of English and any Indian language.
 
 IMPORTANT: Always respond with ONLY a valid JSON object (no markdown, no extra text).
 

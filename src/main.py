@@ -94,6 +94,13 @@ async def web_demo_quotation(request: Request):
     return await web_demo_handler.handle_generate(request)
 
 
+@app.post("/api/web/quotation/audio")
+async def web_demo_quotation_audio(request: Request):
+    """Public web demo endpoint - generate a sample quotation from a recorded voice note."""
+    logger.debug("Web demo audio quotation request received")
+    return await web_demo_handler.handle_generate_audio(request)
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Global exception handler for unhandled errors."""
