@@ -1044,15 +1044,47 @@ body {
     color: var(--primary);
 }
 
-.footer-legal {
+.footer-legal-card {
     max-width: 1400px;
     margin: 3rem auto 0;
-    padding-top: 2rem;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 0.82rem;
-    line-height: 1.7;
-    text-align: center;
+    padding: 2rem 2.5rem;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 16px;
+}
+
+.footer-legal-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.4);
+    margin-bottom: 1.25rem;
+}
+
+.footer-legal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem 2rem;
+}
+
+.footer-legal-grid > div {
+    display: flex;
+    flex-direction: column;
+    gap: 0.3rem;
+}
+
+.footer-legal-key {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: rgba(255, 255, 255, 0.4);
+}
+
+.footer-legal-value {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.85);
+    font-weight: 500;
+    line-height: 1.5;
 }
 
 /* Responsive */
