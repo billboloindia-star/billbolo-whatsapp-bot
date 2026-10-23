@@ -140,14 +140,7 @@ class PDFGenerator:
         c.setFillColor(self.BRAND_PRIMARY)
         c.rect(0, band_bottom, page_width, HEADER_HEIGHT * 0.55, fill=1, stroke=0)
 
-        # Logo mark: circle with "B"
-        logo_cx = 0.85 * inch
-        logo_cy = band_top - 0.62 * inch
-        c.setFillColor(colors.white)
-        c.circle(logo_cx, logo_cy, 0.26 * inch, fill=1, stroke=0)
-        c.setFillColor(self.BRAND_DARK)
-        c.setFont("Helvetica-Bold", 18)
-        c.drawCentredString(logo_cx, logo_cy - 0.08 * inch, "B")
+        self._draw_logo_mark(c, cx=0.85 * inch, cy=band_top - 0.62 * inch, size=0.52 * inch)
 
         # Business name + tagline
         name_x = 1.25 * inch
@@ -157,8 +150,10 @@ class PDFGenerator:
         c.setFont("Helvetica", 9)
         c.setFillColor(colors.HexColor("#E0F2FE"))
         c.drawString(name_x, band_top - 0.78 * inch, business_info.get("phone", "Virtual Munshi inside WhatsApp"))
-        c.setFont("Helvetica", 7.5)
-        c.drawString(name_x, band_top - 0.96 * inch, business_info.get("gst_number", "GST Registration Pending"))
+        gst_number = business_info.get("gst_number")
+        if gst_number:
+            c.setFont("Helvetica", 7.5)
+            c.drawString(name_x, band_top - 0.96 * inch, f"GSTIN: {gst_number}")
 
         # QUOTATION label + ref, right aligned
         right_x = page_width - 0.55 * inch
@@ -169,6 +164,48 @@ class PDFGenerator:
         c.setFillColor(colors.HexColor("#E0F2FE"))
         c.drawRightString(right_x, band_top - 0.78 * inch, quote_ref)
         c.drawRightString(right_x, band_top - 0.94 * inch, datetime.now().strftime("%d %b %Y"))
+
+        c.restoreState()
+
+    def _draw_logo_mark(self, c, cx: float, cy: float, size: float):
+        """Draw the BillBolo brand icon: a speech bubble with a checkmark.
+
+        Mirrors assets/logo-icon.svg (chat bubble + checkmark), recolored
+        white-on-blue to sit on the header band instead of the SVG's blue
+        square background.
+        """
+        c.saveState()
+
+        # Speech bubble body (rounded rect) + tail, both filled white so
+        # they read as one continuous shape.
+        bubble_w = size * 0.62
+        bubble_h = size * 0.46
+        bubble_x = cx - bubble_w * 0.52
+        bubble_y = cy - bubble_h * 0.28
+        radius = size * 0.09
+
+        c.setFillColor(colors.white)
+        c.roundRect(bubble_x, bubble_y, bubble_w, bubble_h, radius, fill=1, stroke=0)
+
+        tail = c.beginPath()
+        tail_x = bubble_x + bubble_w * 0.28
+        tail_y = bubble_y
+        tail.moveTo(tail_x, tail_y)
+        tail.lineTo(tail_x - size * 0.11, tail_y - size * 0.14)
+        tail.lineTo(tail_x + size * 0.16, tail_y)
+        tail.close()
+        c.drawPath(tail, fill=1, stroke=0)
+
+        # Checkmark inside the bubble.
+        c.setStrokeColor(self.BRAND_DARK)
+        c.setLineWidth(size * 0.065)
+        c.setLineCap(1)
+        c.setLineJoin(1)
+        check = c.beginPath()
+        check.moveTo(bubble_x + bubble_w * 0.22, bubble_y + bubble_h * 0.52)
+        check.lineTo(bubble_x + bubble_w * 0.42, bubble_y + bubble_h * 0.28)
+        check.lineTo(bubble_x + bubble_w * 0.80, bubble_y + bubble_h * 0.72)
+        c.drawPath(check, fill=0, stroke=1)
 
         c.restoreState()
 
