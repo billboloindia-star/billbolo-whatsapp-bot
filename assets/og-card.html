@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  @font-face {
+    font-family: 'Inter';
+    src: local('Inter');
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px;
+    height: 630px;
+    font-family: -apple-system, 'Segoe UI', Inter, sans-serif;
+    background: linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .glow {
+    position: absolute;
+    width: 700px;
+    height: 700px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(125, 211, 252, 0.35), transparent 70%);
+    top: -200px;
+    right: -150px;
+  }
+  .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 28px;
+    z-index: 1;
+    text-align: center;
+    padding: 0 80px;
+  }
+  .logo-row {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .logo-icon {
+    width: 76px;
+    height: 76px;
+  }
+  .wordmark {
+    font-size: 56px;
+    font-weight: 800;
+    color: white;
+    letter-spacing: -1px;
+  }
+  .tagline {
+    font-size: 30px;
+    font-weight: 600;
+    color: #e0f2fe;
+    line-height: 1.4;
+  }
+  .sub {
+    font-size: 20px;
+    font-weight: 500;
+    color: rgba(224, 242, 254, 0.85);
+  }
+</style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="content">
+    <div class="logo-row">
+      <img class="logo-icon" src="logo-icon.svg">
+      <span class="wordmark">BillBolo</span>
+    </div>
+    <div class="tagline">Quotations in 5 Seconds. Inside WhatsApp.</div>
+    <div class="sub">Voice note or bill photo &rarr; branded PDF &rarr; done.</div>
+  </div>
+</body>
+</html>
