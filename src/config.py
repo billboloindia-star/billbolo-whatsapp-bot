@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     # Google Gemini API
     gemini_api_key: str
 
+    # Sarvam AI API
+    sarvam_api_key: str
+
     # Google Sheets API
     google_sheets_credentials_json: Optional[str] = None
 
