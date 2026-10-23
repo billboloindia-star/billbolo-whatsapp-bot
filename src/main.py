@@ -156,6 +156,16 @@ async def create_expense(request: Request, user_id: str = Depends(get_current_us
     return await app_api["expenses"].create(user_id, request)
 
 
+@app.patch("/api/expenses/{expense_id}")
+async def update_expense(expense_id: str, request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["expenses"].update(user_id, expense_id, request)
+
+
+@app.delete("/api/expenses/{expense_id}")
+async def delete_expense(expense_id: str, user_id: str = Depends(get_current_user_id)):
+    return await app_api["expenses"].delete(user_id, expense_id)
+
+
 @app.get("/api/ledger")
 async def list_ledger(user_id: str = Depends(get_current_user_id)):
     return await app_api["ledger"].list(user_id)

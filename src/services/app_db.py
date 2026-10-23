@@ -259,6 +259,7 @@ class AppDBClient:
         vendor: Optional[str],
         amount: float,
         notes: Optional[str] = None,
+        items: Optional[list[dict]] = None,
     ) -> Optional[str]:
         try:
             expense_id = str(uuid.uuid4())
@@ -271,6 +272,7 @@ class AppDBClient:
                     "vendor": vendor or "",
                     "amount": _to_decimal(amount),
                     "notes": notes or "",
+                    "items": _to_decimal(items or []),
                     "created_at": created_at,
                 }
             )
@@ -281,6 +283,49 @@ class AppDBClient:
 
     def list_expenses(self, user_id: str) -> list[dict]:
         return self._list_by_prefix(user_id, "EXPENSE#", reverse=True)
+
+    def update_expense(
+        self,
+        user_id: str,
+        expense_id: str,
+        vendor: str,
+        amount: float,
+        notes: str = "",
+    ) -> bool:
+        expense = next(
+            (e for e in self.list_expenses(user_id) if e.get("expense_id") == expense_id),
+            None,
+        )
+        if not expense:
+            return False
+        try:
+            self.table.update_item(
+                Key={"user_id": user_id, "sort_key": expense["sort_key"]},
+                UpdateExpression="SET vendor = :v, amount = :a, notes = :n",
+                ExpressionAttributeValues={
+                    ":v": vendor,
+                    ":a": _to_decimal(amount),
+                    ":n": notes,
+                },
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to update expense: {e}")
+            return False
+
+    def delete_expense(self, user_id: str, expense_id: str) -> bool:
+        expense = next(
+            (e for e in self.list_expenses(user_id) if e.get("expense_id") == expense_id),
+            None,
+        )
+        if not expense:
+            return False
+        try:
+            self.table.delete_item(Key={"user_id": user_id, "sort_key": expense["sort_key"]})
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to delete expense: {e}")
+            return False
 
     # ---- Ledger (udhaar/credit tracking) -------------------------------------
 

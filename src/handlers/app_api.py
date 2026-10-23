@@ -295,11 +295,13 @@ class ExpensesHandler:
             if not extracted:
                 return JSONResponse(status_code=422, content={"error": "Couldn't read that bill/receipt image."})
 
+            items = [item.model_dump() for item in extracted.items]
             expense_id = self.db.create_expense(
                 user_id=user_id,
                 vendor=extracted.client_name,
                 amount=extracted.grand_total or 0,
                 notes=extracted.notes,
+                items=items,
             )
             if not expense_id:
                 return JSONResponse(status_code=500, content={"error": "Failed to save expense."})
@@ -311,11 +313,40 @@ class ExpensesHandler:
                     "vendor": extracted.client_name,
                     "amount": extracted.grand_total or 0,
                     "notes": extracted.notes,
+                    "items": items,
                 },
             )
         except Exception as e:
             logger.error(f"Create expense failed: {e}")
             return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    async def update(self, user_id: str, expense_id: str, request: Request) -> Response:
+        try:
+            body = await request.json()
+            vendor = (body.get("vendor") or "").strip()
+            amount = body.get("amount")
+            notes = (body.get("notes") or "").strip()
+
+            try:
+                amount = float(amount)
+            except (TypeError, ValueError):
+                return JSONResponse(status_code=400, content={"error": "Enter a valid amount."})
+            if amount <= 0:
+                return JSONResponse(status_code=400, content={"error": "Amount must be greater than zero."})
+
+            ok = self.db.update_expense(user_id, expense_id, vendor, amount, notes)
+            if not ok:
+                return JSONResponse(status_code=404, content={"error": "Expense not found."})
+            return JSONResponse(status_code=200, content={"success": True})
+        except Exception as e:
+            logger.error(f"Update expense failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    async def delete(self, user_id: str, expense_id: str) -> Response:
+        ok = self.db.delete_expense(user_id, expense_id)
+        if not ok:
+            return JSONResponse(status_code=404, content={"error": "Expense not found."})
+        return JSONResponse(status_code=200, content={"success": True})
 
 
 class LedgerHandler:

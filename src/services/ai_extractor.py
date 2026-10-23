@@ -21,6 +21,7 @@ class LineItem(BaseModel):
     rate: float = Field(..., description="Rate per unit in INR")
     unit: str = Field(default="qty", description="Unit of measurement (sq ft, hrs, etc)")
     amount: Optional[float] = Field(None, description="Total amount (auto-calculated)")
+    hsn_code: Optional[str] = Field(None, description="HSN/SAC code, if printed on the bill")
 
     def calculate_amount(self) -> float:
         """Calculate total amount for this item."""
@@ -114,7 +115,8 @@ JSON Schema:
             "quantity": 5,
             "rate": 1600.00,
             "unit": "sq ft|hrs|pcs|kg|etc",
-            "amount": null
+            "amount": null,
+            "hsn_code": "HSN or SAC code printed next to this item on the bill (or null if not present)"
         }}
     ],
     "notes": "Payment terms, delivery details, etc (or null)",
@@ -133,6 +135,7 @@ Rules:
 4. Calculate totals: total_before_gst = SUM(quantity * rate), gst_amount = total_before_gst * (gst_percentage/100), grand_total = total_before_gst + gst_amount
 5. Detect language and set language_detected field
 6. For voice notes: user may say "Quotation for Sharma Ji, 80 sq ft wardrobe at 1,600 per sq ft" — parse exactly
+7. If a bill/receipt shows an HSN or SAC code next to an item (common on GST invoices), capture it exactly as printed in that item's hsn_code field. Leave it null if the bill has no HSN/SAC codes.
 
 Return ONLY the JSON object, no other text."""
 
