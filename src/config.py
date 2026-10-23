@@ -12,8 +12,9 @@ class Settings(BaseSettings):
     # WhatsApp Configuration
     whatsapp_api_token: str
     whatsapp_business_account_id: str
+    whatsapp_phone_number_id: str
     whatsapp_webhook_verify_token: str
-    whatsapp_api_url: str = "https://graph.instagram.com/v18.0"
+    whatsapp_api_url: str = "https://graph.facebook.com/v21.0"
 
     # Google Gemini API
     gemini_api_key: str

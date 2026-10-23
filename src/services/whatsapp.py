@@ -29,6 +29,7 @@ class WhatsAppClient:
     def __init__(self):
         self.api_token = settings.whatsapp_api_token
         self.business_account_id = settings.whatsapp_business_account_id
+        self.phone_number_id = settings.whatsapp_phone_number_id
         self.api_url = settings.whatsapp_api_url
         self.session = requests.Session()
         self.session.headers.update(
@@ -41,7 +42,7 @@ class WhatsAppClient:
     def send_text_message(self, phone_number: str, message_text: str) -> bool:
         """Send a text message to a WhatsApp user."""
         try:
-            url = f"{self.api_url}/{self.business_account_id}/messages"
+            url = f"{self.api_url}/{self.phone_number_id}/messages"
             payload = {
                 "messaging_product": "whatsapp",
                 "to": phone_number,
@@ -61,7 +62,7 @@ class WhatsAppClient:
     ) -> bool:
         """Send a document (PDF) to a WhatsApp user."""
         try:
-            url = f"{self.api_url}/{self.business_account_id}/messages"
+            url = f"{self.api_url}/{self.phone_number_id}/messages"
             payload = {
                 "messaging_product": "whatsapp",
                 "to": phone_number,
@@ -104,7 +105,7 @@ class WhatsAppClient:
     def mark_message_as_read(self, message_id: str) -> bool:
         """Mark a message as read."""
         try:
-            url = f"{self.api_url}/{self.business_account_id}/messages"
+            url = f"{self.api_url}/{self.phone_number_id}/messages"
             payload = {
                 "messaging_product": "whatsapp",
                 "status": "read",
