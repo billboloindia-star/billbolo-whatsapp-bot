@@ -2,17 +2,31 @@ service: billbolo-whatsapp-bot
 
 provider:
   name: aws
+  profile: billbolo
   runtime: python3.12
   region: ap-south-1
   stage: ${opt:stage, 'dev'}
   memorySize: 1024
   timeout: 29
 
+  httpApi:
+    cors: true
+
   environment:
     STAGE: ${self:provider.stage}
     DYNAMODB_TABLE: billbolo-state-${self:provider.stage}
     S3_BUCKET: billbolo-pdfs-${self:provider.stage}
-    WHATSAPP_API_URL: https://graph.instagram.com/v18.0
+    WHATSAPP_API_URL: https://graph.facebook.com/v21.0
+    WHATSAPP_API_TOKEN: ${env:WHATSAPP_API_TOKEN}
+    WHATSAPP_BUSINESS_ACCOUNT_ID: ${env:WHATSAPP_BUSINESS_ACCOUNT_ID}
+    WHATSAPP_PHONE_NUMBER_ID: ${env:WHATSAPP_PHONE_NUMBER_ID}
+    WHATSAPP_WEBHOOK_VERIFY_TOKEN: ${env:WHATSAPP_WEBHOOK_VERIFY_TOKEN}
+    GEMINI_API_KEY: ${env:GEMINI_API_KEY}
+    SARVAM_API_KEY: ${env:SARVAM_API_KEY}
+    CASHFREE_API_KEY: ${env:CASHFREE_API_KEY}
+    CASHFREE_SECRET_KEY: ${env:CASHFREE_SECRET_KEY}
+    CASHFREE_WEBHOOK_SECRET: ${env:CASHFREE_WEBHOOK_SECRET}
+    GOOGLE_SHEETS_CREDENTIALS_JSON: ${env:GOOGLE_SHEETS_CREDENTIALS_JSON}
 
   iam:
     role:
@@ -41,32 +55,28 @@ provider:
           Resource: arn:aws:logs:${aws:region}:${aws:accountId}:*
 
 functions:
-  webhook:
-    handler: src/handlers/webhook.handler
+  app:
+    handler: src/main.handler
+    layers:
+      - Ref: PythonRequirementsLambdaLayer
     events:
-      - http:
-          path: webhook
-          method: get
-          cors: true
-      - http:
-          path: webhook
-          method: post
-          cors: true
-
-  payments:
-    handler: src/handlers/payments.handler
-    events:
-      - http:
-          path: payments/webhook
-          method: post
-          cors: true
+      - httpApi:
+          path: /{proxy+}
+          method: ANY
+      - httpApi:
+          path: /
+          method: ANY
 
 # Resources temporarily removed for debugging - will create manually
 
 plugins:
+  - serverless-dotenv-plugin
   - serverless-python-requirements
 
 custom:
+  dotenv:
+    exclude:
+      - AWS_REGION
   pythonRequirements:
     dockerizePip: true
     layer: true
