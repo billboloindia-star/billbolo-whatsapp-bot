@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>BillBolo Logo Preview</title>
+<style>
+  body {
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: #f0f9ff;
+    padding: 3rem;
+    margin: 0;
+  }
+  h1 { color: #0f172a; }
+  .row {
+    display: flex;
+    gap: 2rem;
+    flex-wrap: wrap;
+    margin-bottom: 3rem;
+  }
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 2rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+  .card.dark { background: #0f172a; }
+  .card.dark p { color: rgba(255,255,255,0.7); }
+  .label { font-size: 0.85rem; color: #64748b; font-weight: 600; }
+</style>
+</head>
+<body>
+  <h1>BillBolo Logo — Preview</h1>
+
+  <div class="row">
+    <div class="card">
+      <img src="logo-icon.svg" width="160" height="160">
+      <p class="label">Icon — 160px</p>
+    </div>
+    <div class="card">
+      <img src="logo-icon.svg" width="64" height="64">
+      <p class="label">Icon — 64px (favicon scale)</p>
+    </div>
+    <div class="card">
+      <img src="logo-icon.svg" width="32" height="32">
+      <p class="label">Icon — 32px (tab favicon)</p>
+    </div>
+    <div class="card dark">
+      <img src="logo-icon.svg" width="100" height="100">
+      <p class="label">On dark background</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <img src="logo-full.svg" width="380">
+      <p class="label">Full lockup — navbar size</p>
+    </div>
+    <div class="card dark">
+      <img src="logo-full.svg" width="380">
+      <p class="label">Full lockup — on dark (footer)</p>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card">
+      <img src="logo-full.svg" width="600">
+      <p class="label">Full lockup — large</p>
+    </div>
+  </div>
+</body>
+</html>

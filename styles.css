@@ -130,15 +130,15 @@ body {
 }
 
 .logo {
-    font-size: 1.5rem;
-    font-weight: 900;
-    background: linear-gradient(135deg, #0284c7 0%, #0369a1 50%, #06b6d4 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-    letter-spacing: -0.5px;
+    display: inline-flex;
+    align-items: center;
     text-decoration: none;
-    display: inline-block;
+}
+
+.logo-img {
+    height: 34px;
+    width: auto;
+    display: block;
 }
 
 .back-link {

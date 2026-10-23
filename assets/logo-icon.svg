@@ -1,0 +1,33 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bb-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0284c7"/>
+      <stop offset="50%" stop-color="#0369a1"/>
+      <stop offset="100%" stop-color="#06b6d4"/>
+    </linearGradient>
+  </defs>
+
+  <!-- App-icon background -->
+  <rect x="0" y="0" width="512" height="512" rx="112" fill="url(#bb-grad)"/>
+
+  <!-- Chat bubble -->
+  <path d="M 96 128
+           Q 96 96 128 96
+           L 384 96
+           Q 416 96 416 128
+           L 416 304
+           Q 416 336 384 336
+           L 176 336
+           L 110 392
+           Q 96 404 96 384
+           L 96 128 Z"
+        fill="#ffffff"/>
+
+  <!-- Checkmark (approved/sent quotation) -->
+  <path d="M 164 222 L 222 280 L 352 150"
+        fill="none"
+        stroke="url(#bb-grad)"
+        stroke-width="34"
+        stroke-linecap="round"
+        stroke-linejoin="round"/>
+</svg>
