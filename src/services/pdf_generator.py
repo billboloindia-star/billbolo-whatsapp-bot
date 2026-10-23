@@ -6,6 +6,7 @@ import logging
 from datetime import datetime
 from typing import Optional
 
+from reportlab.graphics.shapes import Drawing, Path, Rect
 from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
@@ -22,21 +23,20 @@ from src.services.ai_extractor import ExtractedData
 
 logger = logging.getLogger(__name__)
 
-HEADER_HEIGHT = 1.55 * inch
-FOOTER_HEIGHT = 0.55 * inch
+FOOTER_HEIGHT = 0.5 * inch
 
 
 class PDFGenerator:
-    """Generate professional GST invoices/quotations with watermark support."""
+    """Generate clean, professional quotations in the style of modern invoicing
+    tools (thin colored accents on a white page, not heavy color blocks)."""
 
     BRAND_DARK = colors.HexColor("#0369A1")
     BRAND_PRIMARY = colors.HexColor("#0284C7")
-    BRAND_LIGHT = colors.HexColor("#38BDF8")
-    BG_TINT = colors.HexColor("#F0F9FF")
-    BORDER_TINT = colors.HexColor("#E0F2FE")
+    BG_TINT = colors.HexColor("#F8FAFC")
+    BORDER = colors.HexColor("#E2E8F0")
     TEXT_DARK = colors.HexColor("#0F172A")
     TEXT_MUTED = colors.HexColor("#64748B")
-    ROW_ALT = colors.HexColor("#F8FAFC")
+    TEXT_FAINT = colors.HexColor("#94A3B8")
 
     def __init__(self, business_name: str = "BillBolo"):
         self.business_name = business_name
@@ -45,34 +45,51 @@ class PDFGenerator:
 
     def _setup_custom_styles(self):
         """Configure custom paragraph styles."""
-        self.styles.add(
-            ParagraphStyle(
-                name="SectionLabel",
-                parent=self.styles["Normal"],
-                fontSize=8,
-                textColor=self.TEXT_MUTED,
-                fontName="Helvetica-Bold",
-                spaceAfter=2,
-            )
-        )
-        self.styles.add(
-            ParagraphStyle(
-                name="SectionValue",
-                parent=self.styles["Normal"],
-                fontSize=11,
-                textColor=self.TEXT_DARK,
-                fontName="Helvetica-Bold",
-            )
-        )
-        self.styles.add(
-            ParagraphStyle(
-                name="NotesBody",
-                parent=self.styles["Normal"],
-                fontSize=9,
-                textColor=self.TEXT_MUTED,
-                leading=13,
-            )
-        )
+        s = self.styles
+        s.add(ParagraphStyle(
+            name="BizName", parent=s["Normal"], fontSize=16,
+            textColor=self.TEXT_DARK, fontName="Helvetica-Bold", leading=19,
+        ))
+        s.add(ParagraphStyle(
+            name="BizMeta", parent=s["Normal"], fontSize=8.5,
+            textColor=self.TEXT_MUTED, leading=13,
+        ))
+        s.add(ParagraphStyle(
+            name="DocTitle", parent=s["Normal"], fontSize=22,
+            textColor=self.BRAND_DARK, fontName="Helvetica-Bold",
+            alignment=2, leading=24,
+        ))
+        s.add(ParagraphStyle(
+            name="DocMeta", parent=s["Normal"], fontSize=9,
+            textColor=self.TEXT_MUTED, alignment=2, leading=13,
+        ))
+        s.add(ParagraphStyle(
+            name="Label", parent=s["Normal"], fontSize=7.5,
+            textColor=self.TEXT_FAINT, fontName="Helvetica-Bold", leading=10,
+        ))
+        s.add(ParagraphStyle(
+            name="LabelRight", parent=s["Label"], alignment=2,
+        ))
+        s.add(ParagraphStyle(
+            name="ClientName", parent=s["Normal"], fontSize=12.5,
+            textColor=self.TEXT_DARK, fontName="Helvetica-Bold", leading=15,
+        ))
+        s.add(ParagraphStyle(
+            name="ValueRight", parent=s["Normal"], fontSize=9.5,
+            textColor=self.TEXT_DARK, alignment=2, leading=13,
+        ))
+        s.add(ParagraphStyle(
+            name="NotesBody", parent=s["Normal"], fontSize=9,
+            textColor=self.TEXT_MUTED, leading=13,
+        ))
+        s.add(ParagraphStyle(
+            name="TermsBody", parent=s["Normal"], fontSize=8, leading=12.5,
+            textColor=self.TEXT_MUTED,
+        ))
+        s.add(ParagraphStyle(
+            name="SignLine", parent=s["Normal"], fontSize=9, alignment=2,
+            textColor=self.TEXT_MUTED,
+        ))
 
     def generate_quotation(
         self,
@@ -86,32 +103,34 @@ class PDFGenerator:
             doc = SimpleDocTemplate(
                 buffer,
                 pagesize=letter,
-                rightMargin=0.55 * inch,
-                leftMargin=0.55 * inch,
-                topMargin=HEADER_HEIGHT + 0.3 * inch,
-                bottomMargin=FOOTER_HEIGHT + 0.3 * inch,
+                rightMargin=0.65 * inch,
+                leftMargin=0.65 * inch,
+                topMargin=0.6 * inch,
+                bottomMargin=FOOTER_HEIGHT + 0.35 * inch,
             )
 
             quote_ref = self._build_reference(extracted_data)
+            valid_until = self._business_days_from_now(15)
             story = []
 
-            story.append(self._build_bill_to_row(extracted_data, quote_ref))
-            story.append(Spacer(1, 0.3 * inch))
+            story.append(self._build_letterhead(business_info, quote_ref))
+            story.append(Spacer(1, 14))
+            story.append(self._build_rule())
+            story.append(Spacer(1, 20))
+            story.append(self._build_bill_to_row(extracted_data, valid_until))
+            story.append(Spacer(1, 22))
             story.append(self._build_items_table(extracted_data))
-            story.append(Spacer(1, 0.18 * inch))
+            story.append(Spacer(1, 14))
             story.append(self._build_totals_table(extracted_data))
 
             if extracted_data.notes:
-                story.append(Spacer(1, 0.25 * inch))
-                story.append(
-                    Paragraph(
-                        f'<b>Notes</b><br/>{extracted_data.notes}',
-                        self.styles["NotesBody"],
-                    )
-                )
+                story.append(Spacer(1, 18))
+                story.append(Paragraph(f"<b>Notes</b><br/>{extracted_data.notes}", self.styles["NotesBody"]))
+
+            story.append(Spacer(1, 26))
+            story.append(self._build_terms_and_signature(business_info))
 
             def draw_chrome(c, _doc):
-                self._draw_header(c, business_info, quote_ref)
                 self._draw_footer(c, is_pro)
 
             doc.build(story, onFirstPage=draw_chrome, onLaterPages=draw_chrome)
@@ -128,210 +147,238 @@ class PDFGenerator:
         short_hash = hashlib.md5(seed.encode()).hexdigest()[:5].upper()
         return f"Q-{datetime.now().strftime('%y%m%d')}-{short_hash}"
 
-    def _draw_header(self, c, business_info: dict, quote_ref: str):
-        """Draw the branded header band directly on the canvas."""
-        page_width, page_height = letter
-        band_top = page_height
-        band_bottom = page_height - HEADER_HEIGHT
+    def _business_days_from_now(self, days: int) -> str:
+        from datetime import timedelta
+        return (datetime.now() + timedelta(days=days)).strftime("%d %b %Y")
 
-        c.saveState()
-        c.setFillColor(self.BRAND_DARK)
-        c.rect(0, band_bottom, page_width, HEADER_HEIGHT, fill=1, stroke=0)
-        c.setFillColor(self.BRAND_PRIMARY)
-        c.rect(0, band_bottom, page_width, HEADER_HEIGHT * 0.55, fill=1, stroke=0)
+    def _make_logo_drawing(self, size: float = 30) -> Drawing:
+        """Build the BillBolo brand mark (speech bubble + checkmark) as a
+        small vector Drawing - mirrors assets/logo-icon.svg."""
+        d = Drawing(size, size)
 
-        self._draw_logo_mark(c, cx=0.85 * inch, cy=band_top - 0.62 * inch, size=0.52 * inch)
+        bg = Rect(0, 0, size, size, rx=size * 0.22, ry=size * 0.22)
+        bg.fillColor = self.BRAND_PRIMARY
+        bg.strokeColor = None
+        d.add(bg)
 
-        # Business name + tagline
-        name_x = 1.25 * inch
-        c.setFillColor(colors.white)
-        c.setFont("Helvetica-Bold", 20)
-        c.drawString(name_x, band_top - 0.55 * inch, business_info.get("name", self.business_name))
-        c.setFont("Helvetica", 9)
-        c.setFillColor(colors.HexColor("#E0F2FE"))
-        c.drawString(name_x, band_top - 0.78 * inch, business_info.get("phone", "Virtual Munshi inside WhatsApp"))
+        bubble_w, bubble_h = size * 0.6, size * 0.44
+        bubble_x = size * 0.19
+        bubble_y = size * 0.32
+
+        bubble = Path(fillColor=colors.white, strokeColor=None)
+        r = size * 0.09
+        bx, by, bw, bh = bubble_x, bubble_y, bubble_w, bubble_h
+        bubble.moveTo(bx + r, by)
+        bubble.lineTo(bx + bw - r, by)
+        bubble.curveTo(bx + bw, by, bx + bw, by, bx + bw, by + r)
+        bubble.lineTo(bx + bw, by + bh - r)
+        bubble.curveTo(bx + bw, by + bh, bx + bw, by + bh, bx + bw - r, by + bh)
+        bubble.lineTo(bx + bw * 0.42, by + bh)
+        bubble.lineTo(bx + bw * 0.22, by + bh + size * 0.12)
+        bubble.lineTo(bx + bw * 0.30, by + bh)
+        bubble.lineTo(bx + r, by + bh)
+        bubble.curveTo(bx, by + bh, bx, by + bh, bx, by + bh - r)
+        bubble.lineTo(bx, by + r)
+        bubble.curveTo(bx, by, bx, by, bx + r, by)
+        bubble.closePath()
+        d.add(bubble)
+
+        check = Path(
+            fillColor=None,
+            strokeColor=self.BRAND_DARK,
+            strokeWidth=size * 0.065,
+            strokeLineCap=1,
+            strokeLineJoin=1,
+        )
+        check.moveTo(bx + bw * 0.20, by + bh * 0.50)
+        check.lineTo(bx + bw * 0.40, by + bh * 0.26)
+        check.lineTo(bx + bw * 0.80, by + bh * 0.72)
+        d.add(check)
+
+        return d
+
+    def _build_letterhead(self, business_info: dict, quote_ref: str) -> Table:
+        """Business identity (left) and document title/meta (right)."""
+        logo = self._make_logo_drawing(30)
+
+        name = business_info.get("name", self.business_name)
+        phone = business_info.get("phone", "Virtual Munshi inside WhatsApp")
         gst_number = business_info.get("gst_number")
+
+        meta_lines = [phone]
         if gst_number:
-            c.setFont("Helvetica", 7.5)
-            c.drawString(name_x, band_top - 0.96 * inch, f"GSTIN: {gst_number}")
+            meta_lines.append(f"GSTIN: {gst_number}")
 
-        # QUOTATION label + ref, right aligned
-        right_x = page_width - 0.55 * inch
-        c.setFillColor(colors.white)
-        c.setFont("Helvetica-Bold", 22)
-        c.drawRightString(right_x, band_top - 0.55 * inch, "QUOTATION")
-        c.setFont("Helvetica", 9)
-        c.setFillColor(colors.HexColor("#E0F2FE"))
-        c.drawRightString(right_x, band_top - 0.78 * inch, quote_ref)
-        c.drawRightString(right_x, band_top - 0.94 * inch, datetime.now().strftime("%d %b %Y"))
-
-        c.restoreState()
-
-    def _draw_logo_mark(self, c, cx: float, cy: float, size: float):
-        """Draw the BillBolo brand icon: a speech bubble with a checkmark.
-
-        Mirrors assets/logo-icon.svg (chat bubble + checkmark), recolored
-        white-on-blue to sit on the header band instead of the SVG's blue
-        square background.
-        """
-        c.saveState()
-
-        # Speech bubble body (rounded rect) + tail, both filled white so
-        # they read as one continuous shape.
-        bubble_w = size * 0.62
-        bubble_h = size * 0.46
-        bubble_x = cx - bubble_w * 0.52
-        bubble_y = cy - bubble_h * 0.28
-        radius = size * 0.09
-
-        c.setFillColor(colors.white)
-        c.roundRect(bubble_x, bubble_y, bubble_w, bubble_h, radius, fill=1, stroke=0)
-
-        tail = c.beginPath()
-        tail_x = bubble_x + bubble_w * 0.28
-        tail_y = bubble_y
-        tail.moveTo(tail_x, tail_y)
-        tail.lineTo(tail_x - size * 0.11, tail_y - size * 0.14)
-        tail.lineTo(tail_x + size * 0.16, tail_y)
-        tail.close()
-        c.drawPath(tail, fill=1, stroke=0)
-
-        # Checkmark inside the bubble.
-        c.setStrokeColor(self.BRAND_DARK)
-        c.setLineWidth(size * 0.065)
-        c.setLineCap(1)
-        c.setLineJoin(1)
-        check = c.beginPath()
-        check.moveTo(bubble_x + bubble_w * 0.22, bubble_y + bubble_h * 0.52)
-        check.lineTo(bubble_x + bubble_w * 0.42, bubble_y + bubble_h * 0.28)
-        check.lineTo(bubble_x + bubble_w * 0.80, bubble_y + bubble_h * 0.72)
-        c.drawPath(check, fill=0, stroke=1)
-
-        c.restoreState()
-
-    def _draw_footer(self, c, is_pro: bool):
-        """Draw the footer directly on the canvas."""
-        page_width, _ = letter
-        c.saveState()
-        c.setStrokeColor(self.BORDER_TINT)
-        c.setLineWidth(1)
-        c.line(0.55 * inch, FOOTER_HEIGHT, page_width - 0.55 * inch, FOOTER_HEIGHT)
-
-        c.setFont("Helvetica-Bold", 8.5)
-        c.setFillColor(self.BRAND_PRIMARY)
-        c.drawCentredString(page_width / 2, FOOTER_HEIGHT - 0.22 * inch, "Made in 5 seconds on BillBolo")
-
-        if not is_pro:
-            c.setFont("Helvetica", 7.5)
-            c.setFillColor(self.TEXT_MUTED)
-            c.drawCentredString(
-                page_width / 2,
-                FOOTER_HEIGHT - 0.36 * inch,
-                "Tap here to make free bills on WhatsApp — wa.me/918123422932",
-            )
-        c.restoreState()
-
-    def _build_bill_to_row(self, extracted_data: ExtractedData, quote_ref: str) -> Table:
-        """Build the 'Bill To' info card."""
-        bill_to = Paragraph(
-            f'<font size=8 color="{self.TEXT_MUTED.hexval()}"><b>BILL TO</b></font>'
-            f'<br/><font size=12 color="{self.TEXT_DARK.hexval()}"><b>'
-            f'{extracted_data.client_name or "Client"}</b></font>',
-            self.styles["Normal"],
+        biz_block = Table(
+            [[logo, Paragraph(f"<b>{name}</b>", self.styles["BizName"])]],
+            colWidths=[0.45 * inch, 3.5 * inch],
         )
-        meta = Paragraph(
-            f'<font size=8 color="{self.TEXT_MUTED.hexval()}"><b>REFERENCE</b></font>'
-            f'<br/><font size=10 color="{self.TEXT_DARK.hexval()}">{quote_ref}</font>',
-            self.styles["Normal"],
-        )
+        biz_block.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+            ("LEFTPADDING", (0, 0), (0, 0), 0),
+            ("LEFTPADDING", (1, 0), (1, 0), 8),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
 
-        table = Table([[bill_to, meta]], colWidths=[4.4 * inch, 2.5 * inch])
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, -1), self.BG_TINT),
-                    ("BOX", (0, 0), (-1, -1), 1, self.BORDER_TINT),
-                    ("ALIGN", (1, 0), (1, 0), "RIGHT"),
-                    ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-                    ("LEFTPADDING", (0, 0), (0, 0), 14),
-                    ("RIGHTPADDING", (1, 0), (1, 0), 14),
-                    ("TOPPADDING", (0, 0), (-1, -1), 12),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 12),
-                ]
-            )
-        )
+        left_cell = [biz_block, Spacer(1, 6), Paragraph("<br/>".join(meta_lines), self.styles["BizMeta"])]
+
+        right_cell = [
+            Paragraph("QUOTATION", self.styles["DocTitle"]),
+            Spacer(1, 4),
+            Paragraph(f"{quote_ref}<br/>{datetime.now().strftime('%d %b %Y')}", self.styles["DocMeta"]),
+        ]
+
+        header = Table([[left_cell, right_cell]], colWidths=[4 * inch, 2.4 * inch])
+        header.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        return header
+
+    def _build_rule(self) -> Table:
+        """A thin colored divider line spanning the page width."""
+        rule = Table([[""]], colWidths=[6.4 * inch], rowHeights=[2])
+        rule.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), self.BRAND_PRIMARY)]))
+        return rule
+
+    def _build_bill_to_row(self, extracted_data: ExtractedData, valid_until: str) -> Table:
+        """'Bill To' details alongside quote validity, no heavy background."""
+        bill_to = [
+            Paragraph("BILL TO", self.styles["Label"]),
+            Spacer(1, 3),
+            Paragraph(extracted_data.client_name or "Client", self.styles["ClientName"]),
+        ]
+        validity = [
+            Paragraph("VALID UNTIL", self.styles["LabelRight"]),
+            Spacer(1, 3),
+            Paragraph(valid_until, self.styles["ValueRight"]),
+        ]
+
+        table = Table([[bill_to, validity]], colWidths=[4 * inch, 2.4 * inch])
+        table.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (0, 0), 12),
+            ("LINEBEFORE", (0, 0), (0, 0), 2.5, self.BRAND_PRIMARY),
+            ("RIGHTPADDING", (1, 0), (1, 0), 0),
+            ("LEFTPADDING", (1, 0), (1, 0), 0),
+            ("TOPPADDING", (0, 0), (-1, -1), 0),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 0),
+        ]))
         return table
 
     def _build_items_table(self, extracted_data: ExtractedData) -> Table:
-        """Build the line items table."""
-        table_data = [
-            ["ITEM", "QTY", "RATE (Rs.)", "UNIT", "AMOUNT (Rs.)"],
-        ]
-
+        """Build the line items table - thin rules, no heavy fill."""
+        table_data = [["ITEM", "QTY", "RATE (Rs.)", "UNIT", "AMOUNT (Rs.)"]]
         for item in extracted_data.items:
-            table_data.append(
-                [
-                    item.item_name,
-                    f"{item.quantity:,.2f}",
-                    f"{item.rate:,.2f}",
-                    item.unit,
-                    f"{item.amount:,.2f}",
-                ]
-            )
+            table_data.append([
+                item.item_name,
+                f"{item.quantity:,.2f}",
+                f"{item.rate:,.2f}",
+                item.unit,
+                f"{item.amount:,.2f}",
+            ])
 
         table = Table(
             table_data,
-            colWidths=[2.6 * inch, 0.75 * inch, 1 * inch, 0.65 * inch, 1 * inch],
+            colWidths=[2.6 * inch, 0.75 * inch, 1 * inch, 0.65 * inch, 1.4 * inch],
         )
-        table.setStyle(
-            TableStyle(
-                [
-                    ("BACKGROUND", (0, 0), (-1, 0), self.BRAND_DARK),
-                    ("TEXTCOLOR", (0, 0), (-1, 0), colors.white),
-                    ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
-                    ("ALIGN", (0, 0), (0, -1), "LEFT"),
-                    ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 8.5),
-                    ("FONT", (0, 1), (-1, -1), "Helvetica", 9.5),
-                    ("TEXTCOLOR", (0, 1), (-1, -1), self.TEXT_DARK),
-                    ("LINEBELOW", (0, 0), (-1, 0), 0, colors.white),
-                    ("LINEBELOW", (0, 1), (-1, -2), 0.5, self.BORDER_TINT),
-                    ("ROWBACKGROUNDS", (0, 1), (-1, -1), [colors.white, self.ROW_ALT]),
-                    ("BOX", (0, 0), (-1, -1), 1, self.BORDER_TINT),
-                    ("TOPPADDING", (0, 0), (-1, -1), 9),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 9),
-                    ("LEFTPADDING", (0, 0), (0, -1), 12),
-                    ("RIGHTPADDING", (-1, 0), (-1, -1), 12),
-                ]
-            )
-        )
+        n_rows = len(table_data)
+        table.setStyle(TableStyle([
+            ("TEXTCOLOR", (0, 0), (-1, 0), self.BRAND_DARK),
+            ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 8),
+            ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
+            ("ALIGN", (0, 0), (0, -1), "LEFT"),
+            ("LINEBELOW", (0, 0), (-1, 0), 1.5, self.BRAND_PRIMARY),
+            ("LINEBELOW", (0, 1), (-1, n_rows - 1), 0.5, self.BORDER),
+            ("FONT", (0, 1), (-1, -1), "Helvetica", 9.5),
+            ("TEXTCOLOR", (0, 1), (-1, -1), self.TEXT_DARK),
+            ("TOPPADDING", (0, 0), (-1, -1), 8),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 8),
+            ("LEFTPADDING", (0, 0), (0, -1), 0),
+            ("RIGHTPADDING", (-1, 0), (-1, -1), 0),
+        ]))
         return table
 
     def _build_totals_table(self, extracted_data: ExtractedData) -> Table:
-        """Build the totals summary table."""
-        totals_data = [
+        """Right-aligned totals block with the grand total as a confined
+        colored callout, not a full-width band."""
+        rows = [
             ["Subtotal", f"Rs. {extracted_data.total_before_gst:,.2f}"],
             [f"GST @ {extracted_data.gst_percentage}%", f"Rs. {extracted_data.gst_amount:,.2f}"],
-            ["GRAND TOTAL", f"Rs. {extracted_data.grand_total:,.2f}"],
+            ["Grand Total", f"Rs. {extracted_data.grand_total:,.2f}"],
+        ]
+        totals = Table(rows, colWidths=[1.6 * inch, 1.6 * inch])
+        totals.setStyle(TableStyle([
+            ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+            ("FONT", (0, 0), (-1, 1), "Helvetica", 9),
+            ("TEXTCOLOR", (0, 0), (-1, 1), self.TEXT_MUTED),
+            ("LINEBELOW", (0, 0), (-1, 0), 0.5, self.BORDER),
+            ("LINEBELOW", (0, 1), (-1, 1), 0.5, self.BORDER),
+            ("FONT", (0, 2), (-1, 2), "Helvetica-Bold", 11.5),
+            ("TEXTCOLOR", (0, 2), (-1, 2), self.BRAND_DARK),
+            ("LINEABOVE", (0, 2), (-1, 2), 1.5, self.BRAND_PRIMARY),
+            ("TOPPADDING", (0, 0), (-1, -1), 6),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
+            ("TOPPADDING", (0, 2), (-1, 2), 10),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ]))
+
+        wrapper = Table([[totals]], colWidths=[6.4 * inch])
+        wrapper.setStyle(TableStyle([
+            ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ]))
+        return wrapper
+
+    def _build_terms_and_signature(self, business_info: dict) -> Table:
+        """Standard quotation footer content: terms + signature line."""
+        terms = Paragraph(
+            "<b>Terms</b><br/>"
+            "This quotation is valid for 15 days from the date of issue. "
+            "Prices are subject to change after expiry. Payment terms to be "
+            "confirmed before work begins.",
+            self.styles["TermsBody"],
+        )
+        signature = [
+            Spacer(1, 26),
+            Paragraph("_____________________________", self.styles["SignLine"]),
+            Paragraph(
+                f"Authorized Signatory, {business_info.get('name', self.business_name)}",
+                self.styles["SignLine"],
+            ),
         ]
 
-        table = Table(totals_data, colWidths=[4.4 * inch, 1.6 * inch])
-        table.setStyle(
-            TableStyle(
-                [
-                    ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-                    ("FONT", (0, 0), (-1, 1), "Helvetica", 9.5),
-                    ("TEXTCOLOR", (0, 0), (-1, 1), self.TEXT_MUTED),
-                    ("FONT", (0, 2), (-1, 2), "Helvetica-Bold", 12.5),
-                    ("BACKGROUND", (0, 2), (-1, 2), self.BRAND_PRIMARY),
-                    ("TEXTCOLOR", (0, 2), (-1, 2), colors.white),
-                    ("TOPPADDING", (0, 0), (-1, -1), 7),
-                    ("BOTTOMPADDING", (0, 0), (-1, -1), 7),
-                    ("TOPPADDING", (0, 2), (-1, 2), 11),
-                    ("BOTTOMPADDING", (0, 2), (-1, 2), 11),
-                    ("RIGHTPADDING", (-1, 0), (-1, -1), 12),
-                    ("LINEBELOW", (0, 0), (-1, 0), 0.5, self.BORDER_TINT),
-                    ("LINEBELOW", (0, 1), (-1, 1), 0.5, self.BORDER_TINT),
-                ]
-            )
-        )
+        table = Table([[terms, signature]], colWidths=[3.8 * inch, 2.6 * inch])
+        table.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("LEFTPADDING", (0, 0), (-1, -1), 0),
+            ("RIGHTPADDING", (0, 0), (-1, -1), 0),
+        ]))
         return table
+
+    def _draw_footer(self, c, is_pro: bool):
+        """Draw a thin, understated footer on the canvas."""
+        page_width, _ = letter
+        c.saveState()
+        c.setStrokeColor(self.BORDER)
+        c.setLineWidth(0.5)
+        c.line(0.65 * inch, FOOTER_HEIGHT, page_width - 0.65 * inch, FOOTER_HEIGHT)
+
+        c.setFont("Helvetica-Bold", 8)
+        c.setFillColor(self.BRAND_PRIMARY)
+        c.drawCentredString(page_width / 2, FOOTER_HEIGHT - 0.2 * inch, "Generated in 5 seconds on BillBolo")
+
+        if not is_pro:
+            c.setFont("Helvetica", 7)
+            c.setFillColor(self.TEXT_FAINT)
+            c.drawCentredString(
+                page_width / 2,
+                FOOTER_HEIGHT - 0.33 * inch,
+                "Make your own free bills on WhatsApp — wa.me/918123422932",
+            )
+        c.restoreState()
