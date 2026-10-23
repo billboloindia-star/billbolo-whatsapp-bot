@@ -94,8 +94,8 @@ EN = {
 
     "pricing.free.name": "Free",
     "pricing.free.feature1": "5 quotations/month",
-    "pricing.free.feature2": "Basic expense tracking",
-    "pricing.free.feature3": "Google Sheets sync",
+    "pricing.free.feature2": "Text-to-Quotation",
+    "pricing.free.feature3": "Speech-to-Quotation",
     "pricing.free.feature4": "English only",
     "pricing.free.button": "Get Started",
 
@@ -116,6 +116,7 @@ EN = {
     "pricing.growth.feature6": "Rate card memory",
     "pricing.growth.feature7": "Weekly business summary",
     "pricing.growth.feature8": "Monthly expense report (PDF)",
+    "pricing.growth.feature9": "Expense tracking & Google Sheets sync",
     "pricing.growth.button": "Choose Growth",
 
     "pricing.business.name": "Business",
@@ -169,32 +170,59 @@ def translate(text: str, target_code: str, api_key: str) -> str:
     return resp.json()["translated_text"]
 
 
+def load_json(path: Path) -> dict:
+    if path.exists():
+        with open(path, encoding="utf-8") as f:
+            return json.load(f)
+    return {}
+
+
 def main() -> None:
     env = dotenv_values(ROOT / ".env")
     api_key = env["SARVAM_API_KEY"]
 
     LOCALES_DIR.mkdir(exist_ok=True)
 
+    # Source-text cache: key -> EN text that was last translated for it.
+    # Used to detect which keys are new or changed since the last run, so
+    # we only call Sarvam for those instead of retranslating everything.
+    cache_path = LOCALES_DIR / "_source_cache.json"
+    cache = load_json(cache_path)
+
     with open(LOCALES_DIR / "en.json", "w", encoding="utf-8") as f:
         json.dump(EN, f, ensure_ascii=False, indent=2)
     print(f"Wrote en.json ({len(EN)} keys)")
 
     for lang_code, sarvam_code in TARGET_LANGUAGES.items():
+        existing = load_json(LOCALES_DIR / f"{lang_code}.json")
         translated = {}
-        for i, (key, text) in enumerate(EN.items(), 1):
+        to_translate = [
+            key for key, text in EN.items()
+            if key not in existing or cache.get(key) != text
+        ]
+        skipped = len(EN) - len(to_translate)
+        print(f"{lang_code}: {len(to_translate)} to translate, {skipped} unchanged (reused)")
+
+        for i, key in enumerate(EN.keys(), 1):
+            if key not in to_translate:
+                translated[key] = existing[key]
+                continue
             try:
-                translated[key] = translate(text, sarvam_code, api_key)
+                translated[key] = translate(EN[key], sarvam_code, api_key)
             except Exception as e:
                 print(f"  FAILED on {lang_code}.{key}: {e}")
-                translated[key] = text
+                translated[key] = existing.get(key, EN[key])
+            time.sleep(0.05)
             if i % 20 == 0:
                 print(f"  {lang_code}: {i}/{len(EN)}")
-            time.sleep(0.05)
 
         out_path = LOCALES_DIR / f"{lang_code}.json"
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(translated, f, ensure_ascii=False, indent=2)
         print(f"Wrote {lang_code}.json ({len(translated)} keys)")
+
+    with open(cache_path, "w", encoding="utf-8") as f:
+        json.dump(EN, f, ensure_ascii=False, indent=2)
 
 
 if __name__ == "__main__":
