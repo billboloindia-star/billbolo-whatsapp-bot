@@ -566,6 +566,16 @@ body {
     margin-bottom: 4rem;
 }
 
+.section-eyebrow {
+    display: inline-block;
+    color: var(--primary-dark);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+}
+
 .section-header h2 {
     font-size: 3rem;
     font-weight: 900;
