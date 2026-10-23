@@ -104,7 +104,6 @@ EN = {
     "pricing.starter.feature1": "Unlimited quotations",
     "pricing.starter.feature2": "Hindi + English (voice & photo)",
     "pricing.starter.feature3": "Client database",
-    "pricing.starter.feature4": "Monthly expense report (PDF)",
     "pricing.starter.button": "Choose Starter",
 
     "pricing.growth.name": "Growth",
@@ -116,6 +115,7 @@ EN = {
     "pricing.growth.feature5": "Udhaar/credit ledger",
     "pricing.growth.feature6": "Rate card memory",
     "pricing.growth.feature7": "Weekly business summary",
+    "pricing.growth.feature8": "Monthly expense report (PDF)",
     "pricing.growth.button": "Choose Growth",
 
     "pricing.business.name": "Business",
