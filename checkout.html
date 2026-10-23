@@ -241,50 +241,69 @@
                 buttonText: 'Get Started',
                 features: [
                     '✓ 5 quotations/month',
-                    '✓ Expense tracking',
-                    '✓ Google Sheets sync'
+                    '✓ Basic expense tracking',
+                    '✓ Google Sheets sync',
+                    '✓ English only'
                 ],
                 note: 'No credit card required. Upgrade anytime.'
             },
-            pro: {
-                name: 'Pro Monthly Plan',
-                title: 'Upgrade to BillBolo Pro',
-                subtitle: 'Start unlimited quotations today',
-                price: '₹499<span style="font-size: 1rem; color: var(--text-secondary);">/month</span>',
-                description: 'Billed monthly. Cancel anytime.',
-                buttonText: 'Pay ₹499/month',
+            starter: {
+                name: 'Starter Plan',
+                title: 'Upgrade to BillBolo Starter',
+                subtitle: 'Unlimited quotations, in Hindi too',
+                price: '₹249<span style="font-size: 1rem; color: var(--text-secondary);">/month</span>',
+                description: 'Billed monthly. Or ₹2,499/year (save 16%). Cancel anytime.',
+                buttonText: 'Pay ₹249/month',
                 features: [
                     '✓ Unlimited quotations',
-                    '✓ Expense tracking',
-                    '✓ Google Sheets sync',
-                    '✓ Priority support',
-                    '✓ Professional PDFs'
+                    '✓ Hindi + English (voice & photo)',
+                    '✓ Client database',
+                    '✓ Monthly expense report (PDF)'
                 ],
                 note: 'Your subscription will renew automatically each month. You can cancel anytime from your account.'
             },
-            yearly: {
-                name: 'Pro Yearly Plan',
-                title: 'Upgrade to BillBolo Pro',
-                subtitle: 'Get the best value',
-                price: '₹4,999<span style="font-size: 1rem; color: var(--text-secondary);">/year</span>',
-                description: 'Billed yearly. Save 16%.',
-                buttonText: 'Pay ₹4,999/year',
+            growth: {
+                name: 'Growth Plan',
+                title: 'Upgrade to BillBolo Growth',
+                subtitle: 'GST invoicing, payments, and more',
+                price: '₹499<span style="font-size: 1rem; color: var(--text-secondary);">/month</span>',
+                description: 'Billed monthly. Or ₹4,999/year (save 17%). Cancel anytime.',
+                buttonText: 'Pay ₹499/month',
                 features: [
-                    '✓ Unlimited quotations',
-                    '✓ Expense tracking',
-                    '✓ Google Sheets sync',
-                    '✓ Priority support',
-                    '✓ Professional PDFs',
-                    '✓ 16% discount vs monthly'
+                    '✓ Everything in Starter',
+                    '✓ All 22 Indian languages',
+                    '✓ GST-compliant invoicing',
+                    '✓ UPI payment link on invoices',
+                    '✓ Payment reminders',
+                    '✓ Udhaar/credit ledger',
+                    '✓ Rate card memory',
+                    '✓ Weekly business summary'
                 ],
-                note: 'Your subscription will renew automatically each year. You can cancel anytime from your account.'
+                note: 'Your subscription will renew automatically each month. You can cancel anytime from your account.'
+            },
+            business: {
+                name: 'Business Plan',
+                title: 'Upgrade to BillBolo Business',
+                subtitle: 'For teams and growing operations',
+                price: '₹999<span style="font-size: 1rem; color: var(--text-secondary);">/month</span>',
+                description: 'Billed monthly. Or ₹9,999/year (save 17%). Cancel anytime.',
+                buttonText: 'Pay ₹999/month',
+                features: [
+                    '✓ Everything in Growth',
+                    '✓ TDS tracking',
+                    '✓ GST filing reminders',
+                    '✓ MSME/Udyam number on invoices',
+                    '✓ Multiple staff & business profiles',
+                    '✓ Dedicated priority support'
+                ],
+                note: 'Your subscription will renew automatically each month. You can cancel anytime from your account.'
             }
         };
 
         // Get plan from URL parameter
         const urlParams = new URLSearchParams(window.location.search);
-        const selectedPlan = urlParams.get('plan') || 'pro';
-        const plan = plans[selectedPlan] || plans.pro;
+        const selectedPlan = urlParams.get('plan') || 'growth';
+        const plan = plans[selectedPlan] || plans.growth;
 
         // Update page with selected plan
         document.getElementById('checkoutTitle').textContent = plan.title;

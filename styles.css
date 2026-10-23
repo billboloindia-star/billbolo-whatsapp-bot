@@ -778,6 +778,31 @@ body {
     gap: 2.5rem;
 }
 
+.pricing-cards-4 {
+    grid-template-columns: repeat(auto-fit, minmax(270px, 1fr));
+    gap: 1.75rem;
+}
+
+.pricing-cards-4 .pricing-card {
+    padding: 2.25rem 1.75rem;
+}
+
+.pricing-cards-4 .pricing-card.featured {
+    transform: scale(1.04);
+}
+
+.pricing-cards-4 .pricing-card.featured:hover {
+    transform: scale(1.04) translateY(-12px);
+}
+
+.pricing-cards-4 .pricing-card.featured.reveal {
+    transform: scale(1.04) translateY(28px);
+}
+
+.pricing-cards-4 .pricing-card.featured.reveal.is-visible {
+    transform: scale(1.04) translateY(0);
+}
+
 .pricing-card {
     padding: 3rem;
     background: white;
@@ -1054,12 +1079,22 @@ body {
         transform: rotate(90deg);
     }
 
-    .pricing-card.featured {
+    .pricing-card.featured,
+    .pricing-cards-4 .pricing-card.featured {
         transform: scale(1);
     }
 
-    .pricing-card.featured:hover {
+    .pricing-card.featured:hover,
+    .pricing-cards-4 .pricing-card.featured:hover {
         transform: scale(1) translateY(-12px);
+    }
+
+    .pricing-cards-4 .pricing-card.featured.reveal {
+        transform: translateY(28px);
+    }
+
+    .pricing-cards-4 .pricing-card.featured.reveal.is-visible {
+        transform: translateY(0);
     }
 
     .footer-content {
