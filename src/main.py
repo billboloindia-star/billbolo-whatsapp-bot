@@ -196,6 +196,16 @@ async def change_password(request: Request, user_id: str = Depends(get_current_u
     return await app_api["profile"].change_password(user_id, request)
 
 
+@app.post("/api/voice-command")
+async def voice_command_classify(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["voice"].classify(user_id, request)
+
+
+@app.post("/api/voice-command/execute")
+async def voice_command_execute(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["voice"].execute(user_id, request)
+
+
 @app.exception_handler(Exception)
 async def global_exception_handler(request: Request, exc: Exception):
     """Global exception handler for unhandled errors."""

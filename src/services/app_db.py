@@ -423,3 +423,20 @@ class AppDBClient:
         except (BotoCoreError, ClientError) as e:
             logger.error(f"Failed to count items for quota check ({entity_prefix}): {e}")
             return 0
+
+    def log_voice_command_usage(self, user_id: str) -> bool:
+        """Write a minimal marker item so count_this_month('VOICECMD#') can rate-limit
+        voice classification calls - counted regardless of whether an action is confirmed."""
+        try:
+            created_at = _now()
+            self.table.put_item(
+                Item={
+                    "user_id": user_id,
+                    "sort_key": f"VOICECMD#{created_at}#{uuid.uuid4()}",
+                    "created_at": created_at,
+                }
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to log voice command usage: {e}")
+            return False

@@ -2,7 +2,7 @@
 
 import json
 import logging
-from typing import Optional
+from typing import Literal, Optional
 
 from google import genai
 from google.genai import types
@@ -11,6 +11,49 @@ from pydantic import BaseModel, Field, ValidationError
 from src.config import settings
 
 logger = logging.getLogger(__name__)
+
+VOICE_COMMAND_ACTIONS = (
+    "navigate",
+    "create_quotation",
+    "log_expense",
+    "add_client",
+    "add_ledger_entry",
+    "mark_ledger_paid",
+    "unknown",
+)
+
+
+class VoiceCommand(BaseModel):
+    """A single voice command, classified into one of a fixed set of app actions."""
+
+    action: Literal[
+        "navigate",
+        "create_quotation",
+        "log_expense",
+        "add_client",
+        "add_ledger_entry",
+        "mark_ledger_paid",
+        "unknown",
+    ] = Field(..., description="Which supported action this command maps to")
+    confirmation_text: str = Field(
+        ..., description="A short, human-readable summary of what will happen, shown to the user to confirm"
+    )
+    # navigate
+    page: Optional[str] = Field(None, description="dashboard|quotations|clients|expenses|ledger|profile")
+    # create_quotation
+    description: Optional[str] = Field(None, description="What the user said about the job, verbatim/summarized")
+    # log_expense
+    vendor: Optional[str] = Field(None, description="Who the expense was paid to")
+    amount: Optional[float] = Field(None, description="Amount in INR")
+    notes: Optional[str] = Field(None, description="Any extra notes mentioned")
+    # add_client
+    client_name: Optional[str] = Field(None, description="Client name (add_client, add_ledger_entry)")
+    client_phone: Optional[str] = Field(None, description="Client phone number (add_client only)")
+    # add_ledger_entry
+    ledger_description: Optional[str] = Field(None, description="What the ledger entry is for")
+    due_date: Optional[str] = Field(None, description="Due date if mentioned, as YYYY-MM-DD if determinable, else as said")
+    # mark_ledger_paid
+    client_name_query: Optional[str] = Field(None, description="Name to search for among unpaid ledger entries")
 
 
 class LineItem(BaseModel):
@@ -101,6 +144,76 @@ class GeminiExtractor:
             return self._parse_response(response.text)
         except Exception as e:
             logger.error(f"Failed to extract from image: {e}")
+            return None
+
+    def classify_voice_command(
+        self, audio_bytes: bytes, audio_mime_type: str = "audio/webm"
+    ) -> Optional[VoiceCommand]:
+        """Classify a short spoken voice command into one of the app's fixed set of actions."""
+        try:
+            prompt = self._build_voice_command_prompt()
+            response = self.client.models.generate_content(
+                model=self.MODEL_NAME,
+                contents=[
+                    types.Part.from_bytes(data=audio_bytes, mime_type=audio_mime_type),
+                    prompt,
+                ],
+            )
+            return self._parse_voice_command_response(response.text)
+        except Exception as e:
+            logger.error(f"Failed to classify voice command: {e}")
+            return None
+
+    def _build_voice_command_prompt(self) -> str:
+        return """You are a voice command classifier for BillBolo, a business app for Indian contractors and freelancers. The user may speak in English, Hindi, Bengali, Tamil, Telugu, Marathi, Hinglish, or a mix of English and any Indian language.
+
+Listen to this short spoken command and classify it into EXACTLY ONE of these 7 actions. Respond with ONLY a valid JSON object (no markdown, no extra text).
+
+Actions and their JSON shape:
+
+1. navigate - user wants to go to a screen. Example: "go to expenses", "show me the ledger"
+   {"action": "navigate", "page": "dashboard|quotations|clients|expenses|ledger|profile", "confirmation_text": "..."}
+
+2. create_quotation - user is describing a job to quote. Example: "quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft"
+   {"action": "create_quotation", "description": "<what they said about the job, verbatim or lightly cleaned up>", "confirmation_text": "..."}
+
+3. log_expense - user wants to log money they spent. Example: "log an expense of 500 rupees for Hardware Store"
+   {"action": "log_expense", "vendor": "...", "amount": 500, "notes": null, "confirmation_text": "..."}
+
+4. add_client - user wants to save a new client. Example: "add a client named Rohit, phone 98765 43210"
+   {"action": "add_client", "client_name": "...", "client_phone": "... or null", "confirmation_text": "..."}
+
+5. add_ledger_entry - user wants to record that someone owes them money. Example: "add to ledger, Sharma owes me 2000 for tiling, due next Friday"
+   {"action": "add_ledger_entry", "client_name": "...", "amount": 2000, "ledger_description": "...", "due_date": "YYYY-MM-DD or null if not mentioned", "confirmation_text": "..."}
+
+6. mark_ledger_paid - user wants to mark an existing debt as paid. Example: "mark Sharma's payment as paid"
+   {"action": "mark_ledger_paid", "client_name_query": "Sharma", "confirmation_text": "..."}
+
+7. unknown - the command doesn't clearly match any of the above, or audio is unclear
+   {"action": "unknown", "confirmation_text": "Sorry, I didn't catch a command I can act on."}
+
+Rules:
+1. confirmation_text must be a short, clear, human-readable sentence describing exactly what will happen if confirmed (e.g. "Log a ₹500 expense for Hardware Store" or "Go to Expenses"). For mark_ledger_paid, phrase it as "Mark <name>'s ledger entry as paid".
+2. For due_date, only set a specific date if you can confidently resolve it (e.g. "tomorrow", "15th October"); for vague terms like "next Friday" without today's date context, put the phrase as-is in ledger_description instead and leave due_date null.
+3. Extract amounts as plain numbers (500, not "500 rupees" or "Rs. 500").
+4. If the command is ambiguous or doesn't fit, use "unknown" rather than guessing.
+
+Return ONLY the JSON object, no other text."""
+
+    def _parse_voice_command_response(self, response_text: str) -> Optional[VoiceCommand]:
+        try:
+            json_text = response_text.strip()
+            if json_text.startswith("```"):
+                json_text = json_text.split("```")[1]
+                if json_text.startswith("json"):
+                    json_text = json_text[4:]
+                json_text = json_text.strip()
+
+            data_dict = json.loads(json_text)
+            return VoiceCommand(**data_dict)
+        except (json.JSONDecodeError, ValidationError) as e:
+            logger.error(f"Failed to parse voice command response: {e}")
+            logger.debug(f"Raw response: {response_text}")
             return None
 
     def _build_extraction_prompt(self, source_type: str) -> str:

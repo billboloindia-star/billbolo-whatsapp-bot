@@ -22,11 +22,15 @@ MAX_AUDIO_BYTES = 10 * 1024 * 1024
 
 FREE_MONTHLY_QUOTATION_LIMIT = 5
 FREE_MONTHLY_EXPENSE_LIMIT = 5
+FREE_MONTHLY_VOICE_COMMAND_LIMIT = 30
 
 QUOTA_EXCEEDED_MESSAGE = (
     "You've reached this month's free limit. Message BillBolo on WhatsApp "
     "or upgrade your plan for unlimited use."
 )
+
+VOICE_NAV_PAGES = {"dashboard", "quotations", "clients", "expenses", "ledger", "profile"}
+VOICE_UNKNOWN_MESSAGE = "Sorry, I didn't catch a command I can act on."
 
 
 async def _check_quota(db: AppDBClient, user_id: str, entity_prefix: str, limit: int) -> Response | None:
@@ -490,18 +494,200 @@ def _strip_keys(items: list[dict]) -> list[dict]:
     return [{k: v for k, v in item.items() if k not in ("user_id", "sort_key")} for item in items]
 
 
+class VoiceCommandHandler:
+    """Tight v1 voice assistant: a fixed set of commands, each requiring explicit
+    confirmation before anything is written (except navigate, which is read-only)."""
+
+    def __init__(self, db: AppDBClient, extractor: GeminiExtractor, quotations_handler: "QuotationsHandler"):
+        self.db = db
+        self.extractor = extractor
+        self.quotations = quotations_handler
+
+    async def classify(self, user_id: str, request: Request) -> Response:
+        try:
+            quota_response = await _check_quota(
+                self.db, user_id, "VOICECMD#", FREE_MONTHLY_VOICE_COMMAND_LIMIT
+            )
+            if quota_response:
+                return quota_response
+
+            form = await request.form()
+            audio_file = form.get("audio")
+            if not isinstance(audio_file, UploadFile):
+                return JSONResponse(status_code=400, content={"error": "No audio file received."})
+
+            audio_bytes = await audio_file.read()
+            if not audio_bytes or len(audio_bytes) > MAX_AUDIO_BYTES:
+                return JSONResponse(status_code=400, content={"error": "Invalid or too-long recording."})
+
+            self.db.log_voice_command_usage(user_id)
+
+            mime_type = getattr(audio_file, "content_type", None) or "audio/webm"
+            command = self.extractor.classify_voice_command(audio_bytes, audio_mime_type=mime_type)
+            if not command:
+                return JSONResponse(status_code=422, content={"error": VOICE_UNKNOWN_MESSAGE})
+
+            if command.action == "navigate":
+                page = (command.page or "").strip().lower()
+                if page not in VOICE_NAV_PAGES:
+                    return JSONResponse(
+                        status_code=200, content={"action": "unknown", "confirmation_text": VOICE_UNKNOWN_MESSAGE}
+                    )
+                return JSONResponse(
+                    status_code=200,
+                    content={"action": "navigate", "page": page, "confirmation_text": command.confirmation_text},
+                )
+
+            if command.action == "mark_ledger_paid":
+                return await self._resolve_mark_paid(user_id, command)
+
+            return JSONResponse(status_code=200, content=command.model_dump())
+        except Exception as e:
+            logger.error(f"Voice command classify failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    async def _resolve_mark_paid(self, user_id: str, command) -> Response:
+        query = (command.client_name_query or "").strip().lower()
+        if not query:
+            return JSONResponse(
+                status_code=200,
+                content={"action": "unknown", "confirmation_text": "I couldn't tell who to mark as paid."},
+            )
+
+        entries = [
+            e
+            for e in self.db.list_ledger_entries(user_id)
+            if e.get("status") == "owed" and query in e.get("client_name", "").lower()
+        ]
+
+        if not entries:
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "action": "unknown",
+                    "confirmation_text": f"Couldn't find an unpaid ledger entry matching \"{command.client_name_query}\".",
+                },
+            )
+        if len(entries) > 1:
+            names = ", ".join(sorted({e["client_name"] for e in entries}))
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "action": "unknown",
+                    "confirmation_text": f"Found multiple matches ({names}) - please be more specific.",
+                },
+            )
+
+        entry = entries[0]
+        return JSONResponse(
+            status_code=200,
+            content={
+                "action": "mark_ledger_paid",
+                "ledger_id": entry["ledger_id"],
+                "confirmation_text": f"Mark {entry['client_name']}'s ₹{entry['amount']} entry as paid?",
+            },
+        )
+
+    async def execute(self, user_id: str, request: Request) -> Response:
+        try:
+            body = await request.json()
+            action = body.get("action")
+
+            if action == "create_quotation":
+                description = (body.get("description") or "").strip()
+                if not description:
+                    return JSONResponse(status_code=400, content={"error": "Missing description."})
+                quota_response = await _check_quota(
+                    self.db, user_id, "QUOTATION#", FREE_MONTHLY_QUOTATION_LIMIT
+                )
+                if quota_response:
+                    return quota_response
+                extracted = self.extractor.extract_from_text(description)
+                return await self.quotations._finish(user_id, extracted)
+
+            if action == "log_expense":
+                vendor = (body.get("vendor") or "").strip()
+                try:
+                    amount = float(body.get("amount"))
+                except (TypeError, ValueError):
+                    return JSONResponse(status_code=400, content={"error": "Invalid amount."})
+                if amount <= 0:
+                    return JSONResponse(status_code=400, content={"error": "Amount must be greater than zero."})
+                notes = (body.get("notes") or "").strip()
+
+                quota_response = await _check_quota(self.db, user_id, "EXPENSE#", FREE_MONTHLY_EXPENSE_LIMIT)
+                if quota_response:
+                    return quota_response
+
+                expense_id = self.db.create_expense(user_id=user_id, vendor=vendor, amount=amount, notes=notes)
+                if not expense_id:
+                    return JSONResponse(status_code=500, content={"error": "Failed to log expense."})
+                return JSONResponse(status_code=201, content={"success": True, "expense_id": expense_id})
+
+            if action == "add_client":
+                name = (body.get("client_name") or "").strip()
+                if not name:
+                    return JSONResponse(status_code=400, content={"error": "Missing client name."})
+                phone = (body.get("client_phone") or "").strip()
+                client_id = self.db.create_client(user_id=user_id, name=name, phone=phone)
+                if not client_id:
+                    return JSONResponse(status_code=500, content={"error": "Failed to add client."})
+                return JSONResponse(status_code=201, content={"success": True, "client_id": client_id})
+
+            if action == "add_ledger_entry":
+                client_name = (body.get("client_name") or "").strip()
+                if not client_name:
+                    return JSONResponse(status_code=400, content={"error": "Missing client name."})
+                try:
+                    amount = float(body.get("amount"))
+                except (TypeError, ValueError):
+                    return JSONResponse(status_code=400, content={"error": "Invalid amount."})
+                if amount <= 0:
+                    return JSONResponse(status_code=400, content={"error": "Amount must be greater than zero."})
+                description = (body.get("ledger_description") or "").strip()
+                due_date = (body.get("due_date") or "").strip() or None
+
+                ledger_id = self.db.create_ledger_entry(
+                    user_id=user_id,
+                    client_id=None,
+                    client_name=client_name,
+                    amount=amount,
+                    description=description,
+                    due_date=due_date,
+                )
+                if not ledger_id:
+                    return JSONResponse(status_code=500, content={"error": "Failed to add ledger entry."})
+                return JSONResponse(status_code=201, content={"success": True, "ledger_id": ledger_id})
+
+            if action == "mark_ledger_paid":
+                ledger_id = body.get("ledger_id")
+                if not ledger_id:
+                    return JSONResponse(status_code=400, content={"error": "Missing ledger_id."})
+                ok = self.db.mark_ledger_paid(user_id, ledger_id)
+                if not ok:
+                    return JSONResponse(status_code=404, content={"error": "Ledger entry not found."})
+                return JSONResponse(status_code=200, content={"success": True})
+
+            return JSONResponse(status_code=400, content={"error": "Unsupported action."})
+        except Exception as e:
+            logger.error(f"Voice command execute failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+
 def create_app_api_handlers():
     """Factory wiring all app API handlers with shared dependencies."""
     db = AppDBClient()
     extractor = GeminiExtractor()
     pdf_gen = PDFGenerator()
     storage = PDFStorage()
+    quotations_handler = QuotationsHandler(db, extractor, pdf_gen, storage)
 
     return {
         "auth": AuthHandler(db),
         "clients": ClientsHandler(db),
-        "quotations": QuotationsHandler(db, extractor, pdf_gen, storage),
+        "quotations": quotations_handler,
         "expenses": ExpensesHandler(db, extractor),
         "ledger": LedgerHandler(db),
         "profile": ProfileHandler(db),
+        "voice": VoiceCommandHandler(db, extractor, quotations_handler),
     }
