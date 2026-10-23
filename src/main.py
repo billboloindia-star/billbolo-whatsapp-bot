@@ -3,15 +3,17 @@
 import logging
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Request
+from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from mangum import Mangum
 
 from src.config import settings
+from src.handlers.app_api import create_app_api_handlers
 from src.handlers.webhook import create_webhook_handler
 from src.handlers.payments import create_payment_handler
 from src.handlers.web_demo import create_web_demo_handler
+from src.services.auth import get_current_user_id
 
 # Configure logging
 logging.basicConfig(
@@ -25,6 +27,7 @@ logger = logging.getLogger(__name__)
 webhook_handler = create_webhook_handler()
 payment_handler = create_payment_handler()
 web_demo_handler = create_web_demo_handler()
+app_api = create_app_api_handlers()
 
 
 @asynccontextmanager
@@ -51,8 +54,8 @@ app.add_middleware(
         "https://billboloindia-star.github.io",
         "http://localhost:3000",
     ],
-    allow_methods=["GET", "POST"],
-    allow_headers=["Content-Type"],
+    allow_methods=["GET", "POST", "PATCH", "DELETE"],
+    allow_headers=["Content-Type", "Authorization"],
 )
 
 
@@ -99,6 +102,73 @@ async def web_demo_quotation_audio(request: Request):
     """Public web demo endpoint - generate a sample quotation from a recorded voice note."""
     logger.debug("Web demo audio quotation request received")
     return await web_demo_handler.handle_generate_audio(request)
+
+
+@app.post("/api/auth/signup")
+async def auth_signup(request: Request):
+    """Create a new web app account."""
+    return await app_api["auth"].signup(request)
+
+
+@app.post("/api/auth/login")
+async def auth_login(request: Request):
+    """Log into the web app with email/phone + password."""
+    return await app_api["auth"].login(request)
+
+
+@app.get("/api/clients")
+async def list_clients(user_id: str = Depends(get_current_user_id)):
+    return await app_api["clients"].list(user_id)
+
+
+@app.post("/api/clients")
+async def create_client(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["clients"].create(user_id, request)
+
+
+@app.delete("/api/clients/{client_id}")
+async def delete_client(client_id: str, user_id: str = Depends(get_current_user_id)):
+    return await app_api["clients"].delete(user_id, client_id)
+
+
+@app.get("/api/quotations")
+async def list_quotations(user_id: str = Depends(get_current_user_id)):
+    return await app_api["quotations"].list(user_id)
+
+
+@app.post("/api/quotations")
+async def create_quotation(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["quotations"].create_from_text(user_id, request)
+
+
+@app.post("/api/quotations/audio")
+async def create_quotation_audio(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["quotations"].create_from_audio(user_id, request)
+
+
+@app.get("/api/expenses")
+async def list_expenses(user_id: str = Depends(get_current_user_id)):
+    return await app_api["expenses"].list(user_id)
+
+
+@app.post("/api/expenses")
+async def create_expense(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["expenses"].create(user_id, request)
+
+
+@app.get("/api/ledger")
+async def list_ledger(user_id: str = Depends(get_current_user_id)):
+    return await app_api["ledger"].list(user_id)
+
+
+@app.post("/api/ledger")
+async def create_ledger_entry(request: Request, user_id: str = Depends(get_current_user_id)):
+    return await app_api["ledger"].create(user_id, request)
+
+
+@app.patch("/api/ledger/{ledger_id}/paid")
+async def mark_ledger_paid(ledger_id: str, user_id: str = Depends(get_current_user_id)):
+    return await app_api["ledger"].mark_paid(user_id, ledger_id)
 
 
 @app.exception_handler(Exception)

@@ -34,6 +34,10 @@ class Settings(BaseSettings):
     aws_region: str = "us-east-1"
     dynamodb_table: str
     s3_bucket: str
+    app_table: str = "billbolo-app-dev"
+
+    # Web app auth
+    jwt_secret: str
 
     # Application
     stage: str = "development"

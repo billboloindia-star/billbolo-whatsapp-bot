@@ -15,7 +15,9 @@ provider:
   environment:
     STAGE: ${self:provider.stage}
     DYNAMODB_TABLE: billbolo-state-${self:provider.stage}
+    APP_TABLE: billbolo-app-${self:provider.stage}
     S3_BUCKET: billbolo-pdfs-${self:provider.stage}
+    JWT_SECRET: ${env:JWT_SECRET}
     WHATSAPP_API_URL: https://graph.facebook.com/v21.0
     WHATSAPP_API_TOKEN: ${env:WHATSAPP_API_TOKEN}
     WHATSAPP_BUSINESS_ACCOUNT_ID: ${env:WHATSAPP_BUSINESS_ACCOUNT_ID}
@@ -39,6 +41,18 @@ provider:
             - dynamodb:Query
             - dynamodb:Scan
           Resource: arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:provider.environment.DYNAMODB_TABLE}
+
+        - Effect: Allow
+          Action:
+            - dynamodb:GetItem
+            - dynamodb:PutItem
+            - dynamodb:UpdateItem
+            - dynamodb:DeleteItem
+            - dynamodb:Query
+            - dynamodb:Scan
+          Resource:
+            - arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:provider.environment.APP_TABLE}
+            - arn:aws:dynamodb:${aws:region}:${aws:accountId}:table/${self:provider.environment.APP_TABLE}/index/*
 
         - Effect: Allow
           Action:
