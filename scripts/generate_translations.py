@@ -147,6 +147,7 @@ EN = {
     "footer.email": "Email",
     "footer.phone": "Phone",
     "footer.udyam": "Udyam Registration",
+    "footer.surveyLink": "💬 Help us build this — 2 min survey",
 
     "lang.switcherLabel": "Language",
 }
