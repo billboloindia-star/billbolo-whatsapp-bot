@@ -251,19 +251,19 @@ class DynamoDBClient:
             return None
 
     def check_rate_limit(self, identifier: str, limit: int) -> bool:
-        """Atomically check and increment a daily rate-limit counter.
+        """Atomically check and increment a monthly rate-limit counter.
 
         Returns True if the request is allowed (and counts it), False if
-        the identifier has hit its daily limit. Fails open (allows the
-        request) on DynamoDB errors so an infra hiccup never blocks
-        legitimate traffic - this is a soft abuse guard, not a security
-        boundary.
+        the identifier has hit its limit for the current calendar month.
+        Fails open (allows the request) on DynamoDB errors so an infra
+        hiccup never blocks legitimate traffic - this is a soft abuse
+        guard, not a security boundary.
         """
-        today = datetime.utcnow().strftime("%Y-%m-%d")
+        this_month = datetime.utcnow().strftime("%Y-%m")
         rate_key = f"ratelimit#{identifier}"
         try:
             self.table.update_item(
-                Key={"phone_number": rate_key, "created_at": today},
+                Key={"phone_number": rate_key, "created_at": this_month},
                 UpdateExpression=(
                     "SET request_count = if_not_exists(request_count, :zero) + :inc, "
                     "expires_at = :ttl"
@@ -275,7 +275,7 @@ class DynamoDBClient:
                     ":zero": 0,
                     ":inc": 1,
                     ":limit": limit,
-                    ":ttl": int((datetime.utcnow() + timedelta(days=2)).timestamp()),
+                    ":ttl": int((datetime.utcnow() + timedelta(days=35)).timestamp()),
                 },
             )
             return True

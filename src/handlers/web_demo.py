@@ -13,7 +13,7 @@ from src.services.pdf_generator import PDFGenerator
 
 logger = logging.getLogger(__name__)
 
-DAILY_LIMIT_PER_IP = 5
+MONTHLY_LIMIT_PER_IP = 5
 MAX_AUDIO_BYTES = 10 * 1024 * 1024  # ~60s of compressed voice audio, generous ceiling
 MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB ceiling for a bill photo/PDF
 
@@ -30,11 +30,11 @@ class WebDemoHandler:
         """Accept a text description and return the extracted data + PDF."""
         try:
             client_ip = self._get_client_ip(request)
-            if not self.db.check_rate_limit(client_ip, limit=DAILY_LIMIT_PER_IP):
+            if not self.db.check_rate_limit(client_ip, limit=MONTHLY_LIMIT_PER_IP):
                 return JSONResponse(
                     status_code=429,
                     content={
-                        "error": f"You've reached today's limit of {DAILY_LIMIT_PER_IP} free demo "
+                        "error": f"You've reached this month's limit of {MONTHLY_LIMIT_PER_IP} free demo "
                         "quotations. Message BillBolo on WhatsApp for unlimited use: "
                         "wa.me/918123422932"
                     },
@@ -77,11 +77,11 @@ class WebDemoHandler:
         """Accept a recorded voice note and return the extracted data + PDF."""
         try:
             client_ip = self._get_client_ip(request)
-            if not self.db.check_rate_limit(client_ip, limit=DAILY_LIMIT_PER_IP):
+            if not self.db.check_rate_limit(client_ip, limit=MONTHLY_LIMIT_PER_IP):
                 return JSONResponse(
                     status_code=429,
                     content={
-                        "error": f"You've reached today's limit of {DAILY_LIMIT_PER_IP} free demo "
+                        "error": f"You've reached this month's limit of {MONTHLY_LIMIT_PER_IP} free demo "
                         "quotations. Message BillBolo on WhatsApp for unlimited use: "
                         "wa.me/918123422932"
                     },
@@ -132,11 +132,11 @@ class WebDemoHandler:
         Demo only - nothing is persisted or tied to any account."""
         try:
             client_ip = self._get_client_ip(request)
-            if not self.db.check_rate_limit(client_ip, limit=DAILY_LIMIT_PER_IP):
+            if not self.db.check_rate_limit(client_ip, limit=MONTHLY_LIMIT_PER_IP):
                 return JSONResponse(
                     status_code=429,
                     content={
-                        "error": f"You've reached today's limit of {DAILY_LIMIT_PER_IP} free demo "
+                        "error": f"You've reached this month's limit of {MONTHLY_LIMIT_PER_IP} free demo "
                         "tries. Message BillBolo on WhatsApp for unlimited use: "
                         "wa.me/918123422932"
                     },
