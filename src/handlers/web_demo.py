@@ -9,7 +9,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.datastructures import UploadFile
 
-from src.services.ai_extractor import GeminiExtractor
+from src.services.ai_extractor import ExtractedData, GeminiExtractor
 from src.services.database import DynamoDBClient
 from src.services.ledger_assistant import LedgerAssistant
 from src.services.pdf_generator import PDFGenerator
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 MONTHLY_LIMIT_PER_IP = 5
 MAX_AUDIO_BYTES = 10 * 1024 * 1024  # ~60s of compressed voice audio, generous ceiling
 MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB ceiling for a bill photo/PDF
-DEMO_LEDGER_TTL_DAYS = 1  # demo ledger data is throwaway, unlike a real user's
+DEMO_LEDGER_TTL_DAYS = 1  # demo ledger/estimate data is throwaway, unlike a real user's
 SESSION_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
 
@@ -256,14 +256,162 @@ class WebDemoHandler:
             return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
 
     def _resolve_demo_ledger_identifier(self, session_id: str) -> tuple[str, str]:
+        return self._resolve_demo_identifier(session_id, "demoledger")
+
+    def _resolve_demo_identifier(self, session_id: str, prefix: str) -> tuple[str, str]:
         """Validate/generate the session id and ensure a short-lived demo
         profile exists for it (pending-confirmation storage needs one)."""
         if not SESSION_ID_RE.match(session_id or ""):
             session_id = uuid.uuid4().hex
-        identifier = f"demoledger#{session_id}"
+        identifier = f"{prefix}#{session_id}"
         if not self.db.get_user_profile(identifier):
             self.db.create_user_profile(identifier, business_name="Demo", ttl_days=DEMO_LEDGER_TTL_DAYS)
         return identifier, session_id
+
+    async def handle_estimate_command(self, request: Request) -> Response:
+        """Generate a sample quotation from text, and persist it (scoped to
+        a demo session) so the paired convert endpoint can find it. Demo
+        only - never a real phone number, data expires after a day."""
+        try:
+            client_ip = self._get_client_ip(request)
+            if not self.db.check_rate_limit(client_ip, limit=MONTHLY_LIMIT_PER_IP):
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": f"You've reached this month's limit of {MONTHLY_LIMIT_PER_IP} free demo "
+                        "tries. Message BillBolo on WhatsApp for unlimited use: "
+                        "wa.me/918123422932"
+                    },
+                )
+
+            body = await request.json()
+            text = (body.get("text") or "").strip()
+            session_id = (body.get("session_id") or "").strip()
+
+            if not text:
+                return JSONResponse(status_code=400, content={"error": "Please describe the job."})
+            if len(text) > 1000:
+                return JSONResponse(status_code=400, content={"error": "Description is too long (max 1000 characters)."})
+
+            identifier, session_id = self._resolve_demo_identifier(session_id, "demoestimate")
+
+            extracted = self.extractor.extract_from_text(text)
+            if not extracted or not extracted.items:
+                return JSONResponse(
+                    status_code=422,
+                    content={
+                        "error": "Couldn't understand that. Try something like "
+                        "'Quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft'."
+                    },
+                )
+
+            doc_ref = self.pdf_gen.build_reference(extracted, "quotation")
+            pdf_bytes = self.pdf_gen.generate_quotation(
+                extracted, {"name": "BillBolo Demo"}, is_pro=False, doc_ref=doc_ref
+            )
+            if not pdf_bytes:
+                return JSONResponse(status_code=500, content={"error": "Failed to generate PDF. Please try again."})
+
+            self.db.create_quotation(
+                identifier,
+                quote_number=doc_ref,
+                client_name=extracted.client_name or "Client",
+                items=[item.model_dump() for item in extracted.items],
+                total_before_gst=extracted.total_before_gst or 0,
+                gst_amount=extracted.gst_amount or 0,
+                gst_percentage=extracted.gst_percentage or 0,
+                grand_total=extracted.grand_total or 0,
+                discount_amount=extracted.discount_amount,
+                discount_percent=extracted.discount_percent,
+                notes=extracted.notes,
+                ttl_days=DEMO_LEDGER_TTL_DAYS,
+            )
+
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "session_id": session_id,
+                    "quote_number": doc_ref,
+                    "client_name": extracted.client_name,
+                    "items": [item.model_dump() for item in extracted.items],
+                    "grand_total": extracted.grand_total,
+                    "pdf_base64": base64.standard_b64encode(pdf_bytes).decode("utf-8"),
+                },
+            )
+        except Exception as e:
+            logger.error(f"Web demo estimate generation failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    async def handle_estimate_convert(self, request: Request) -> Response:
+        """Convert this demo session's open quotation into an invoice."""
+        try:
+            client_ip = self._get_client_ip(request)
+            if not self.db.check_rate_limit(client_ip, limit=MONTHLY_LIMIT_PER_IP):
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": f"You've reached this month's limit of {MONTHLY_LIMIT_PER_IP} free demo "
+                        "tries. Message BillBolo on WhatsApp for unlimited use: "
+                        "wa.me/918123422932"
+                    },
+                )
+
+            body = await request.json()
+            session_id = (body.get("session_id") or "").strip()
+            due_date = body.get("due_date") or None
+            payment_mode = body.get("payment_mode") or None
+
+            if not SESSION_ID_RE.match(session_id or ""):
+                return JSONResponse(status_code=400, content={"error": "No quotation found for this session."})
+
+            identifier = f"demoestimate#{session_id}"
+            quotation = self.db.find_open_quotation(identifier)
+            if not quotation:
+                return JSONResponse(
+                    status_code=404,
+                    content={"error": "No open quotation found in this session. Generate one first."},
+                )
+
+            extracted = ExtractedData(
+                data_type="invoice",
+                client_name=quotation["client_name"],
+                items=quotation.get("items", []),
+                notes=quotation.get("notes") or None,
+                gst_percentage=float(quotation.get("gst_percentage") or 0),
+                discount_amount=float(quotation["discount_amount"]) if quotation.get("discount_amount") else None,
+                discount_percent=float(quotation["discount_percent"]) if quotation.get("discount_percent") else None,
+                total_before_gst=float(quotation.get("total_before_gst") or 0),
+                gst_amount=float(quotation.get("gst_amount") or 0),
+                grand_total=float(quotation.get("grand_total") or 0),
+                due_date=due_date,
+                payment_mode=payment_mode,
+            )
+
+            doc_ref = self.pdf_gen.build_reference(extracted, "invoice")
+            pdf_bytes = self.pdf_gen.generate_invoice(
+                extracted, {"name": "BillBolo Demo"}, is_pro=False, doc_ref=doc_ref
+            )
+            if not pdf_bytes:
+                return JSONResponse(status_code=500, content={"error": "Failed to generate PDF. Please try again."})
+
+            self.db.mark_quotation_converted(identifier, quotation)
+
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "quote_number": quotation["quote_number"],
+                    "invoice_number": doc_ref,
+                    "client_name": extracted.client_name,
+                    "items": [item.model_dump() for item in extracted.items],
+                    "grand_total": extracted.grand_total,
+                    "due_date": due_date,
+                    "payment_mode": payment_mode,
+                    "pdf_base64": base64.standard_b64encode(pdf_bytes).decode("utf-8"),
+                },
+            )
+        except Exception as e:
+            logger.error(f"Web demo estimate conversion failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
 
     def _build_success_response(self, extracted) -> JSONResponse:
         """Generate the demo PDF and build the shared success response payload.

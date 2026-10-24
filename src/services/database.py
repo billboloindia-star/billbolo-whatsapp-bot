@@ -273,6 +273,148 @@ class DynamoDBClient:
             logger.error(f"Failed to clear pending ledger action: {e}")
             return False
 
+    def set_pending_conversion(self, phone_number: str, action: dict) -> bool:
+        """Stash a quotation-to-invoice conversion awaiting user confirmation
+        (e.g. an ambiguous client name match), independent of the ledger's
+        own pending-action field so the two never collide."""
+        try:
+            profile = self.get_user_profile(phone_number)
+            if not profile:
+                return False
+            payload = dict(action)
+            payload["created_at_ts"] = datetime.utcnow().isoformat()
+            self.table.update_item(
+                Key={"phone_number": profile["phone_number"], "created_at": profile["created_at"]},
+                UpdateExpression="SET pending_conversion = :a",
+                ExpressionAttributeValues={":a": _to_decimal(payload)},
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to set pending conversion: {e}")
+            return False
+
+    def get_pending_conversion(self, phone_number: str) -> Optional[dict]:
+        """Return the pending conversion for this user, if any and not expired."""
+        profile = self.get_user_profile(phone_number)
+        if not profile:
+            return None
+        action = profile.get("pending_conversion")
+        if not action:
+            return None
+        try:
+            created = datetime.fromisoformat(action["created_at_ts"])
+        except (KeyError, ValueError):
+            return None
+        if datetime.utcnow() - created > timedelta(minutes=self.PENDING_LEDGER_ACTION_TTL_MINUTES):
+            return None
+        return action
+
+    def clear_pending_conversion(self, phone_number: str) -> bool:
+        """Remove any pending conversion on this user's profile."""
+        try:
+            profile = self.get_user_profile(phone_number)
+            if not profile:
+                return False
+            self.table.update_item(
+                Key={"phone_number": profile["phone_number"], "created_at": profile["created_at"]},
+                UpdateExpression="REMOVE pending_conversion",
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to clear pending conversion: {e}")
+            return False
+
+    def create_quotation(
+        self,
+        phone_number: str,
+        quote_number: str,
+        client_name: str,
+        items: list[dict],
+        total_before_gst: float,
+        gst_amount: float,
+        gst_percentage: float,
+        grand_total: float,
+        discount_amount: Optional[float] = None,
+        discount_percent: Optional[float] = None,
+        notes: Optional[str] = None,
+        ttl_days: Optional[int] = None,
+    ) -> Optional[dict]:
+        """Persist a generated quotation, via WhatsApp, so it can later be
+        looked up and converted to an invoice (Estimates -> Invoice). Stored
+        under a distinct partition key (quotation#<phone>), same pattern as
+        the ledger. No TTL by default - an open estimate shouldn't silently
+        vanish; ttl_days is only passed for throwaway demo data."""
+        try:
+            sort_key = f"{datetime.utcnow().isoformat()}#{uuid.uuid4().hex[:8]}"
+            item = {
+                "phone_number": f"quotation#{phone_number}",
+                "created_at": sort_key,
+                "quote_number": quote_number,
+                "client_name": client_name,
+                "client_name_lower": client_name.lower(),
+                "items": _to_decimal(items),
+                "total_before_gst": _to_decimal(total_before_gst),
+                "gst_amount": _to_decimal(gst_amount),
+                "gst_percentage": _to_decimal(gst_percentage),
+                "grand_total": _to_decimal(grand_total),
+                "discount_amount": _to_decimal(discount_amount),
+                "discount_percent": _to_decimal(discount_percent),
+                "notes": notes or "",
+                "status": "open",
+                "converted_at": "",
+            }
+            if ttl_days is not None:
+                item["expires_at"] = int((datetime.utcnow() + timedelta(days=ttl_days)).timestamp())
+            self.table.put_item(Item=item)
+            return item
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to create quotation: {e}")
+            return None
+
+    def list_quotations(self, phone_number: str, status: Optional[str] = None) -> list[dict]:
+        """List all quotations generated via WhatsApp for this phone number,
+        newest first. Optionally filtered to a status ("open" or "converted")."""
+        try:
+            response = self.table.query(
+                KeyConditionExpression="phone_number = :pn",
+                ExpressionAttributeValues={":pn": f"quotation#{phone_number}"},
+                ScanIndexForward=False,
+            )
+            items = response.get("Items", [])
+            if status:
+                items = [i for i in items if i.get("status") == status]
+            return items
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to list quotations: {e}")
+            return []
+
+    def find_open_quotation(self, phone_number: str, client_name: Optional[str] = None) -> Optional[dict]:
+        """Find the most recent open (not yet converted) quotation, optionally
+        narrowed to an exact (case-insensitive) client name match. Exact
+        match only - any fuzzy disambiguation between similarly-named
+        clients must happen upstream, with user confirmation, before this
+        is called with a resolved name."""
+        open_quotes = self.list_quotations(phone_number, status="open")
+        if client_name:
+            query_lower = client_name.strip().lower()
+            open_quotes = [q for q in open_quotes if q.get("client_name_lower") == query_lower]
+        return open_quotes[0] if open_quotes else None
+
+    def mark_quotation_converted(self, phone_number: str, quotation: dict) -> bool:
+        """Mark a quotation as converted to an invoice, so it can't be
+        converted again."""
+        try:
+            self.table.update_item(
+                Key={"phone_number": quotation["phone_number"], "created_at": quotation["created_at"]},
+                UpdateExpression="SET #s = :converted, converted_at = :ts",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={":converted": "converted", ":ts": datetime.utcnow().isoformat()},
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to mark quotation converted: {e}")
+            return False
+
     def get_user_profile(self, phone_number: str) -> Optional[dict]:
         """Retrieve user profile from DynamoDB."""
         try:

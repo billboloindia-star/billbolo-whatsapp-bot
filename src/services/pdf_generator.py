@@ -203,21 +203,33 @@ class PDFGenerator:
         extracted_data: ExtractedData,
         business_info: dict,
         is_pro: bool = False,
+        doc_ref: Optional[str] = None,
     ) -> Optional[bytes]:
-        """Generate a professional quotation PDF."""
-        return self._generate_document(extracted_data, business_info, is_pro, doc_type="quotation")
+        """Generate a professional quotation PDF. doc_ref lets a caller pin
+        the reference number shown on the PDF (e.g. to match one already
+        persisted), instead of letting it be generated internally."""
+        return self._generate_document(extracted_data, business_info, is_pro, doc_type="quotation", doc_ref=doc_ref)
 
     def generate_invoice(
         self,
         extracted_data: ExtractedData,
         business_info: dict,
         is_pro: bool = False,
+        doc_ref: Optional[str] = None,
     ) -> Optional[bytes]:
         """Generate a professional invoice PDF - same theme system as
         quotations, but with invoice-specific fields (due date, payment
         mode, balance due, amount in words, Ship To) and, for a
         cumulative/periodic bill, a Date column per line item."""
-        return self._generate_document(extracted_data, business_info, is_pro, doc_type="invoice")
+        return self._generate_document(extracted_data, business_info, is_pro, doc_type="invoice", doc_ref=doc_ref)
+
+    def build_reference(self, extracted_data: ExtractedData, doc_type: str = "quotation") -> str:
+        """Build a short, readable document reference number (e.g. Q-261024-A1B2C).
+        Public so a caller can generate+persist it before the PDF exists."""
+        seed = f"{extracted_data.client_name}{datetime.now().isoformat()}"
+        short_hash = hashlib.md5(seed.encode()).hexdigest()[:5].upper()
+        prefix = "INV" if doc_type == "invoice" else "Q"
+        return f"{prefix}-{datetime.now().strftime('%y%m%d')}-{short_hash}"
 
     def _generate_document(
         self,
@@ -225,6 +237,7 @@ class PDFGenerator:
         business_info: dict,
         is_pro: bool,
         doc_type: str,
+        doc_ref: Optional[str] = None,
     ) -> Optional[bytes]:
         try:
             buffer = io.BytesIO()
@@ -237,7 +250,7 @@ class PDFGenerator:
                 bottomMargin=FOOTER_HEIGHT + 0.35 * inch,
             )
 
-            doc_ref = self._build_reference(extracted_data, doc_type)
+            doc_ref = doc_ref or self.build_reference(extracted_data, doc_type)
             fs = self.theme.font_scale
             is_band = self.theme.header_style == "band"
             story = []
@@ -281,12 +294,6 @@ class PDFGenerator:
             logger.error(f"Failed to generate {doc_type} PDF: {e}")
             return None
 
-    def _build_reference(self, extracted_data: ExtractedData, doc_type: str = "quotation") -> str:
-        """Build a short, readable document reference number."""
-        seed = f"{extracted_data.client_name}{datetime.now().isoformat()}"
-        short_hash = hashlib.md5(seed.encode()).hexdigest()[:5].upper()
-        prefix = "INV" if doc_type == "invoice" else "Q"
-        return f"{prefix}-{datetime.now().strftime('%y%m%d')}-{short_hash}"
 
     def _business_days_from_now(self, days: int) -> str:
         from datetime import timedelta

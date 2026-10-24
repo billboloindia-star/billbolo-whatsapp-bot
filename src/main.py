@@ -125,6 +125,20 @@ async def web_demo_ledger_audio(request: Request):
     return await web_demo_handler.handle_ledger_audio_command(request)
 
 
+@app.post("/api/web/estimate")
+async def web_demo_estimate(request: Request):
+    """Public web demo endpoint - generate a sample quotation, scoped to a demo session."""
+    logger.debug("Web demo estimate request received")
+    return await web_demo_handler.handle_estimate_command(request)
+
+
+@app.post("/api/web/estimate/convert")
+async def web_demo_estimate_convert(request: Request):
+    """Public web demo endpoint - convert this demo session's quotation to an invoice."""
+    logger.debug("Web demo estimate conversion request received")
+    return await web_demo_handler.handle_estimate_convert(request)
+
+
 @app.post("/api/auth/signup")
 async def auth_signup(request: Request):
     """Create a new web app account."""

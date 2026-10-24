@@ -48,6 +48,7 @@ class VoiceCommand(BaseModel):
         "add_ledger_entry",
         "mark_ledger_paid",
         "check_balance",
+        "convert_quotation_to_invoice",
         "unknown",
     ] = Field(..., description="Which supported action this command maps to")
     confirmation_text: str = Field(
@@ -67,10 +68,14 @@ class VoiceCommand(BaseModel):
     # add_ledger_entry
     ledger_description: Optional[str] = Field(None, description="What the ledger entry is for")
     due_date: Optional[str] = Field(None, description="Due date if mentioned, as YYYY-MM-DD if determinable, else as said")
-    # mark_ledger_paid, check_balance
+    # mark_ledger_paid, check_balance, convert_quotation_to_invoice
     client_name_query: Optional[str] = Field(
-        None, description="Name to search for among unpaid ledger entries (null in check_balance means 'everyone')"
+        None,
+        description="Name to search for among unpaid ledger entries / open quotations "
+        "(null in check_balance means 'everyone', null in convert_quotation_to_invoice means 'the most recent one')",
     )
+    # convert_quotation_to_invoice - due_date field above is reused here too
+    payment_mode: Optional[str] = Field(None, description="Payment mode mentioned, e.g. UPI/Cash/Bank Transfer (convert_quotation_to_invoice)")
     # add_ledger_entry, mark_ledger_paid - only set when a list of known clients was given as context
     ambiguous_candidates: Optional[list[str]] = Field(
         None,
@@ -280,9 +285,14 @@ Follow these rules EXACTLY when the command names a client - getting this wrong 
 4. If the name in the command is a COMPLETE, SPECIFIC name (e.g. "Ramesh Verma") that does not exactly match any known client, treat it as a genuinely different, new person - even if a known client shares part of the name (e.g. "Ramesh Sisodia" also starting with "Ramesh"). Do NOT silently substitute a known client's name for a different specific name the user actually said. Use the name exactly as the user said it, and leave ambiguous_candidates null.
 5. Never invent or assume a match that changes what the user explicitly said unless rule 2 or 3 applies."""
 
-        return """You are a voice command classifier for BillBolo, a business app for Indian contractors and freelancers. The user may speak in English, Hindi, Bengali, Tamil, Telugu, Marathi, Hinglish, or a mix of English and any Indian language.""" + known_clients_block + """
+        today = datetime.now().strftime("%Y-%m-%d (%A)")
+        today_block = (
+            f"\n\nToday's date is {today}. Use this to resolve relative dates like "
+            '"due in 15 days", "next Friday", or a date mentioned without a year.'
+        )
+        return """You are a voice command classifier for BillBolo, a business app for Indian contractors and freelancers. The user may speak in English, Hindi, Bengali, Tamil, Telugu, Marathi, Hinglish, or a mix of English and any Indian language.""" + known_clients_block + today_block + """
 
-Classify this command into EXACTLY ONE of these 8 actions. Respond with ONLY a valid JSON object (no markdown, no extra text).
+Classify this command into EXACTLY ONE of these 9 actions. Respond with ONLY a valid JSON object (no markdown, no extra text).
 
 Actions and their JSON shape:
 
@@ -307,12 +317,15 @@ Actions and their JSON shape:
 7. check_balance - user wants to know who owes them money, or how much a specific client owes. Example: "who owes me money", "what does Ramesh owe me", "total udhaar", "Suresh ka balance kitna hai"
    {"action": "check_balance", "client_name_query": "<name mentioned, or null if asking about everyone>", "confirmation_text": "..."}
 
-8. unknown - the command doesn't clearly match any of the above, or audio is unclear
+8. convert_quotation_to_invoice - user wants to turn an already-sent quotation into a real invoice. Example: "convert Sharma's quotation to invoice", "invoice Ramesh's job, due in 15 days, paid by UPI"
+   {"action": "convert_quotation_to_invoice", "client_name_query": "<name mentioned, or null for 'the most recent quotation'>", "due_date": "YYYY-MM-DD or as said, or null", "payment_mode": "... or null", "ambiguous_candidates": null, "confirmation_text": "..."}
+
+9. unknown - the command doesn't clearly match any of the above, or audio is unclear
    {"action": "unknown", "confirmation_text": "Sorry, I didn't catch a command I can act on."}
 
 Rules:
 1. confirmation_text must be a short, clear, human-readable sentence describing exactly what will happen if confirmed (e.g. "Log a ₹500 expense for Hardware Store" or "Go to Expenses"). For mark_ledger_paid, phrase it as "Mark <name>'s ledger entry as paid".
-2. For due_date, only set a specific date if you can confidently resolve it (e.g. "tomorrow", "15th October"); for vague terms like "next Friday" without today's date context, put the phrase as-is in ledger_description instead and leave due_date null.
+2. For due_date, resolve it using today's date above whenever possible (e.g. "tomorrow", "due in 15 days", "15th October", "next Friday"). Only if a term is too vague to resolve confidently, put the phrase as-is in ledger_description instead (for add_ledger_entry) and leave due_date null.
 3. Extract amounts as plain numbers (500, not "500 rupees" or "Rs. 500").
 4. If the command is ambiguous or doesn't fit, use "unknown" rather than guessing.
 

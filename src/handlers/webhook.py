@@ -9,7 +9,7 @@ from fastapi import Request, Response
 
 from src.config import settings
 from src.services.whatsapp import WhatsAppClient
-from src.services.ai_extractor import GeminiExtractor
+from src.services.ai_extractor import GeminiExtractor, ExtractedData
 from src.services.pdf_generator import PDFGenerator
 from src.services.database import DynamoDBClient
 from src.services.sheets import GoogleSheetsClient
@@ -112,10 +112,14 @@ class WebhookHandler:
                 # Reply to an earlier "did you mean X or Y?" confirmation - always
                 # routes through the ledger assistant, ahead of any other mode.
                 await self._try_handle_ledger_command(phone_number, text)
+            elif self.db.get_pending_conversion(phone_number):
+                await self._resolve_pending_conversion(phone_number, text)
             elif text.lower().startswith("quote:") or text.lower().startswith("q:"):
                 # Edit mode: "Change wardrobe rate to 1,700"
                 await self._handle_edit_request(phone_number, text)
             elif await self._try_handle_ledger_command(phone_number, text):
+                pass
+            elif await self._try_handle_convert_command(phone_number, text):
                 pass
             else:
                 await self._generate_quotation(
@@ -139,6 +143,107 @@ class WebhookHandler:
             return False
         await self._send_reply(phone_number, reply)
         return True
+
+    CONVERT_KEYWORDS = ("convert", "estimate")
+
+    async def _try_handle_convert_command(self, phone_number: str, text: str) -> bool:
+        """If this text message asks to convert an open quotation to an
+        invoice, handle it and return True. Otherwise return False so the
+        caller falls through to normal quotation generation."""
+        lower = text.lower()
+        looks_like_convert = any(kw in lower for kw in self.CONVERT_KEYWORDS) or (
+            "invoice" in lower and ("quotation" in lower or "estimate" in lower or "job" in lower)
+        )
+        if not looks_like_convert:
+            return False
+
+        open_quotes = self.db.list_quotations(phone_number, status="open")
+        known_clients = list(dict.fromkeys(q["client_name"] for q in open_quotes))
+        command = self.extractor.classify_text_command(text, known_clients=known_clients)
+        if not command or command.action != "convert_quotation_to_invoice":
+            return False
+
+        candidates = list(dict.fromkeys(command.ambiguous_candidates or []))
+        if len(candidates) >= 2:
+            self.db.set_pending_conversion(
+                phone_number,
+                {"candidates": candidates, "due_date": command.due_date, "payment_mode": command.payment_mode},
+            )
+            await self._send_reply(
+                phone_number,
+                f"Did you mean {self.ledger.format_candidates(candidates)}? Reply with the name to confirm.",
+            )
+            return True
+
+        await self._convert_quotation(phone_number, command.client_name_query, command.due_date, command.payment_mode)
+        return True
+
+    async def _resolve_pending_conversion(self, phone_number: str, text: str) -> None:
+        """Handle a reply to an earlier ambiguous-name conversion confirmation."""
+        pending = self.db.get_pending_conversion(phone_number)
+        reply_lower = text.strip().lower()
+        candidates = pending.get("candidates", [])
+
+        if reply_lower in ("cancel", "no", "neither", "none"):
+            self.db.clear_pending_conversion(phone_number)
+            await self._send_reply(phone_number, "Cancelled.")
+            return
+
+        resolved = next((c for c in candidates if c.lower() == reply_lower), None)
+        if not resolved:
+            resolved = next((c for c in candidates if reply_lower in c.lower() or c.lower() in reply_lower), None)
+        if not resolved:
+            resolved = text.strip()
+
+        self.db.clear_pending_conversion(phone_number)
+        await self._convert_quotation(phone_number, resolved, pending.get("due_date"), pending.get("payment_mode"))
+
+    async def _convert_quotation(
+        self, phone_number: str, client_name_query: Optional[str], due_date: Optional[str], payment_mode: Optional[str]
+    ) -> None:
+        """Look up an open quotation (most recent, or by exact client name)
+        and generate a real invoice from it - same client, items and
+        totals, no re-entering anything."""
+        quotation = self.db.find_open_quotation(phone_number, client_name_query)
+        if not quotation:
+            target = f" for {client_name_query}" if client_name_query else ""
+            await self._send_reply(phone_number, f"I couldn't find an open quotation{target} to convert.")
+            return
+
+        user = self.db.get_user_profile(phone_number)
+        extracted = ExtractedData(
+            data_type="invoice",
+            client_name=quotation["client_name"],
+            items=quotation.get("items", []),
+            notes=quotation.get("notes") or None,
+            gst_percentage=float(quotation.get("gst_percentage") or 0),
+            discount_amount=float(quotation["discount_amount"]) if quotation.get("discount_amount") else None,
+            discount_percent=float(quotation["discount_percent"]) if quotation.get("discount_percent") else None,
+            total_before_gst=float(quotation.get("total_before_gst") or 0),
+            gst_amount=float(quotation.get("gst_amount") or 0),
+            grand_total=float(quotation.get("grand_total") or 0),
+            due_date=due_date,
+            payment_mode=payment_mode,
+        )
+
+        doc_ref = self.pdf_gen.build_reference(extracted, "invoice")
+        pdf_bytes = self.pdf_gen.generate_invoice(
+            extracted,
+            {"name": user.get("business_name", "Business") if user else "Business"},
+            is_pro=user.get("is_pro", False) if user else False,
+            doc_ref=doc_ref,
+        )
+        if not pdf_bytes:
+            await self._send_reply(phone_number, "Failed to generate the invoice. Please try again.")
+            return
+
+        pdf_url = await self._save_pdf_to_s3(pdf_bytes, phone_number)
+        await self.whatsapp.send_document(
+            phone_number,
+            pdf_url,
+            caption=f"Invoice for {quotation['client_name']} (converted from {quotation['quote_number']})",
+        )
+        self.db.mark_quotation_converted(phone_number, quotation)
 
     async def _handle_audio_message(self, phone_number: str, media_id: str) -> None:
         """Handle audio (voice note) message."""
@@ -181,10 +286,13 @@ class WebhookHandler:
 
         is_invoice = extracted.data_type == "invoice"
         gen_fn = self.pdf_gen.generate_invoice if is_invoice else self.pdf_gen.generate_quotation
+        doc_type = "invoice" if is_invoice else "quotation"
+        doc_ref = self.pdf_gen.build_reference(extracted, doc_type)
         pdf_bytes = gen_fn(
             extracted,
             {"name": user.get("business_name", "Business")},
             is_pro=user.get("is_pro", False),
+            doc_ref=doc_ref,
         )
         if not pdf_bytes:
             await self._send_reply(phone_number, "Failed to generate PDF. Please try again.")
@@ -202,6 +310,24 @@ class WebhookHandler:
             self.sheets.append_quotation_to_sheet(user["sheet_id"], extracted, phone_number)
 
         self.db.increment_credits_used(phone_number)
+
+        if not is_invoice and extracted.client_name:
+            # Persist so it can later be looked up and converted to an
+            # invoice (Estimates -> Invoice) - invoices created directly
+            # aren't estimates, so they're not saved here.
+            self.db.create_quotation(
+                phone_number,
+                quote_number=doc_ref,
+                client_name=extracted.client_name,
+                items=[item.model_dump() for item in extracted.items],
+                total_before_gst=extracted.total_before_gst or 0,
+                gst_amount=extracted.gst_amount or 0,
+                gst_percentage=extracted.gst_percentage or 0,
+                grand_total=extracted.grand_total or 0,
+                discount_amount=extracted.discount_amount,
+                discount_percent=extracted.discount_percent,
+                notes=extracted.notes,
+            )
 
     async def _handle_image_message(self, phone_number: str, media_id: str) -> None:
         """Handle image (bill/receipt) message."""

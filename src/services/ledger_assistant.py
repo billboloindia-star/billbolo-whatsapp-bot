@@ -92,7 +92,7 @@ class LedgerAssistant:
                         "due_date": command.due_date,
                     },
                 )
-                return f"Did you mean {self._format_candidates(candidates)}, or someone new? Reply with the name to confirm."
+                return f"Did you mean {self.format_candidates(candidates)}, or someone new? Reply with the name to confirm."
             return self._add_ledger_entry_and_reply(
                 identifier, command.client_name, command.amount, command.ledger_description, command.due_date
             )
@@ -104,7 +104,7 @@ class LedgerAssistant:
                 self.db.set_pending_ledger_action(
                     identifier, {"action": "mark_ledger_paid", "candidates": candidates}
                 )
-                return f"Did you mean {self._format_candidates(candidates)}? Reply with the name to confirm."
+                return f"Did you mean {self.format_candidates(candidates)}? Reply with the name to confirm."
             return self._mark_ledger_paid_and_reply(identifier, command.client_name_query)
 
         # check_balance
@@ -128,7 +128,7 @@ class LedgerAssistant:
         grand_total = sum(b["total"] for b in balances)
         return "Who owes you money:\n" + "\n".join(lines) + f"\n\nTotal: ₹{grand_total:,.0f}"
 
-    def _format_candidates(self, candidates: list[str]) -> str:
+    def format_candidates(self, candidates: list[str]) -> str:
         if len(candidates) == 2:
             return f"{candidates[0]} or {candidates[1]}"
         return ", ".join(candidates[:-1]) + f", or {candidates[-1]}"
