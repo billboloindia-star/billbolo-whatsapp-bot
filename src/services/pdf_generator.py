@@ -348,9 +348,13 @@ class PDFGenerator:
 
     def _build_items_table(self, extracted_data: ExtractedData) -> Table:
         """Build the line items table. "Formal" theme gets a solid colored
-        header row (white text); other themes keep thin rules, no heavy fill."""
+        header row (white text). Minimal keeps its thin-rule, no-grid look
+        by design; Bold/Formal/Compact get a visible full grid (thicker
+        boxed cell borders), matching the fill-in-form convention real
+        quotation templates use rather than looking under-structured."""
         fs = self.theme.font_scale
         is_formal = self.theme.header_style == "formal"
+        is_minimal = self.theme.header_style == "minimal"
         table_data = [["ITEM", "QTY", "RATE (Rs.)", "UNIT", "AMOUNT (Rs.)"]]
         for item in extracted_data.items:
             table_data.append([
@@ -372,18 +376,22 @@ class PDFGenerator:
             ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 8 * fs),
             ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
             ("ALIGN", (0, 0), (0, -1), "LEFT"),
-            ("LINEBELOW", (0, 1), (-1, n_rows - 1), 0.5, self.BORDER),
             ("FONT", (0, 1), (-1, -1), "Helvetica", 9.5 * fs),
             ("TEXTCOLOR", (0, 1), (-1, -1), self.TEXT_DARK),
             ("TOPPADDING", (0, 0), (-1, -1), row_pad),
             ("BOTTOMPADDING", (0, 0), (-1, -1), row_pad),
-            ("LEFTPADDING", (0, 0), (0, -1), 6 if is_formal else 0),
-            ("RIGHTPADDING", (-1, 0), (-1, -1), 6 if is_formal else 0),
+            ("LEFTPADDING", (0, 0), (0, -1), 6),
+            ("RIGHTPADDING", (-1, 0), (-1, -1), 6 if is_formal else 4),
         ]
+        if is_minimal:
+            style.append(("LINEBELOW", (0, 1), (-1, n_rows - 1), 0.5, self.BORDER))
+            style.append(("LINEBELOW", (0, 0), (-1, 0), 1.5, self.BRAND_PRIMARY))
+        else:
+            style.append(("GRID", (0, 0), (-1, -1), 1.1, self.TEXT_DARK))
+            if not is_formal:
+                style.append(("LINEBELOW", (0, 0), (-1, 0), 1.5, self.BRAND_PRIMARY))
         if is_formal:
             style.append(("BACKGROUND", (0, 0), (-1, 0), self.BRAND_DARK))
-        else:
-            style.append(("LINEBELOW", (0, 0), (-1, 0), 1.5, self.BRAND_PRIMARY))
         table.setStyle(TableStyle(style))
         return table
 
