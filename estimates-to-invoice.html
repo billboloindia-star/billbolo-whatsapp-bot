@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Estimates → Invoice — BillBolo</title>
+    <meta name="description" content="Turn an accepted quotation straight into a final invoice — no re-entering details.">
+    <link rel="canonical" href="https://billbolo.in/estimates-to-invoice.html">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://billbolo.in/estimates-to-invoice.html">
+    <meta property="og:title" content="Estimates → Invoice — BillBolo">
+    <meta property="og:description" content="Turn an accepted quotation straight into a final invoice — no re-entering details.">
+    <meta property="og:image" content="https://billbolo.in/assets/og-image.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-format.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg">
+</head>
+<body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><img src="assets/logo-full.svg" alt="BillBolo" class="logo-img"></a>
+            <div class="nav-links">
+                <a href="index.html#features">Features</a>
+                <a href="privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="format-hero">
+        <div class="container">
+            <p class="format-breadcrumb"><a href="index.html">Home</a> &rsaquo; <a href="index.html#features">Features</a> &rsaquo; Estimates → Invoice</p>
+            <div class="icon-badge icon-badge-lg" style="margin: 0 auto 1.5rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>
+            </div>
+            <h1>Estimates → Invoice</h1>
+            <p class="format-hero-sub">Turn an accepted quotation straight into a final invoice — no re-entering details.</p>
+            <div class="format-hero-cta">
+                <a href="https://wa.me/918123422932" target="_blank" class="hero-cta-primary-dark">Start on WhatsApp →</a>
+                <a href="index.html#features" class="hero-cta-outline">See all features</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-intro">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">How It Works</p>
+            <h2>The job's confirmed — don't start over</h2>
+        </div>
+        <p class="format-intro-body reveal">Once a client accepts your quotation, just say "convert Sharma's quotation to invoice" — BillBolo finds that exact quotation, carries over the client, items and totals, and turns it into a real invoice with a due date and payment tracking. Nothing gets re-typed.</p>
+        <p class="format-intro-body reveal" style="transition-delay: 0.05s">Got more than one open quotation with a similar client name? BillBolo asks which one you meant instead of guessing. Don't mention a name at all, and it converts your most recent one.</p>
+    </section>
+
+    <section class="demo-section">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Try It Right Here</p>
+            <h2>See it work, no signup needed</h2>
+            <p>Generate a sample quotation, then convert it — this is a live demo, nothing is saved anywhere.</p>
+        </div>
+        <div class="demo-box reveal">
+            <div class="estimate-step">
+                <div class="estimate-step-label"><span class="estimate-step-num">1</span> Generate a quotation</div>
+                <textarea id="estDemoInput" class="demo-textarea" rows="3" placeholder="e.g. Quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft">Quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft</textarea>
+                <button id="estDemoGenerate" class="demo-submit-btn">Generate Quotation</button>
+            </div>
+
+            <div id="estDemoError" class="demo-error" style="display: none;"></div>
+
+            <div id="estDemoQuoteResult" class="demo-result" style="display: none;">
+                <div class="demo-result-header">
+                    <span id="estDemoQuoteClient" class="demo-result-vendor"></span>
+                    <span class="demo-result-category">Quotation</span>
+                </div>
+                <div id="estDemoQuoteItems" class="demo-result-items"></div>
+                <div class="demo-result-total">
+                    <span>Grand Total</span>
+                    <span id="estDemoQuoteTotal"></span>
+                </div>
+            </div>
+
+            <div id="estStep2" class="estimate-step estimate-step-2" style="display: none;">
+                <div class="estimate-step-label"><span class="estimate-step-num">2</span> Convert it to an invoice</div>
+                <div class="estimate-step2-inputs">
+                    <input type="text" id="estDemoDueDate" class="ledger-demo-input" placeholder="Due date (e.g. in 15 days) — optional" />
+                    <input type="text" id="estDemoPaymentMode" class="ledger-demo-input" placeholder="Payment mode (e.g. UPI) — optional" />
+                </div>
+                <button id="estDemoConvert" class="demo-submit-btn">Convert to Invoice</button>
+            </div>
+
+            <div id="estDemoInvoiceResult" class="demo-result" style="display: none;">
+                <div class="demo-result-header">
+                    <span id="estDemoInvoiceClient" class="demo-result-vendor"></span>
+                    <span class="demo-result-category">Invoice</span>
+                </div>
+                <div id="estDemoInvoiceItems" class="demo-result-items"></div>
+                <div class="demo-result-total">
+                    <span>Grand Total</span>
+                    <span id="estDemoInvoiceTotal"></span>
+                </div>
+                <a id="estDemoPdfLink" class="format-compare-cta" href="#" download="billbolo-sample-invoice.pdf" style="display: inline-block; margin-top: 1rem;">Download Invoice PDF</a>
+                <p class="demo-result-note">This is exactly what gets generated automatically when you send this on WhatsApp.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-compare">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Before You Start Over</p>
+            <h2>Should You Re-Create the Invoice From Scratch?</h2>
+            <p>Copying details from an old quotation into a new invoice is a start — but here's where it goes wrong.</p>
+        </div>
+        <div class="compare-grid">
+            <div class="compare-col compare-col-limit reveal">
+                <h3>✕ Starting from scratch</h3>
+                <ul>
+                    <li>Re-typing the same client, items and rates all over again</li>
+                    <li>Easy to make a mistake copying numbers by hand</li>
+                    <li>No link between the original quotation and the final invoice</li>
+                    <li>Forgetting to add a due date or payment mode</li>
+                    <li>No way to tell which quotations are still open vs. already billed</li>
+                    <li>Discounts and GST details have to be re-entered too</li>
+                </ul>
+            </div>
+            <div class="compare-col compare-col-bolo reveal" style="transition-delay: 0.1s">
+                <h3>✓ With BillBolo</h3>
+                <ul>
+                    <li>Just say "convert Sharma's quotation to invoice" — done</li>
+                    <li>Client, items and totals carried over exactly, no retyping</li>
+                    <li>The invoice references the exact quotation it came from</li>
+                    <li>Add a due date and payment mode in the same message</li>
+                    <li>Converted quotations are marked so they're never reused by mistake</li>
+                    <li>Discounts and GST carry over automatically</li>
+                </ul>
+                <a href="https://wa.me/918123422932" target="_blank" class="format-compare-cta">Try it on WhatsApp →</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-faq">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Got Questions?</p>
+            <h2>Frequently Asked Questions</h2>
+        </div>
+        <div class="faq-list">
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">How do I convert a quotation to an invoice?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Just text "convert [client]'s quotation to invoice" — you can add a due date and payment mode in the same message, like "convert Sharma's quotation to invoice, due in 15 days, paid by UPI".</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">What if I don't mention a client name?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">BillBolo converts your most recent open quotation — the one you haven't already turned into an invoice.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">What happens if I have two similarly named clients?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">BillBolo asks you to confirm which one you meant instead of guessing — just reply with the name, and it converts the right quotation.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Can I convert the same quotation twice?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">No — once converted, a quotation is marked so it won't be picked up again, which keeps you from accidentally double-billing a client.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Does the invoice keep any discounts from the original quotation?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes — item-level and whole-bill discounts, along with GST, carry over exactly as they were on the quotation.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Do I need any accounting software to use this?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">No. There's nothing to install or set up — you just text BillBolo on WhatsApp, the same app you already use every day.</span>
+            </button>
+        </div>
+    </section>
+
+    <section class="cta-section reveal">
+        <h2>Try it yourself, right now</h2>
+        <p>Message BillBolo on WhatsApp — no signup, no download, just send a message.</p>
+        <a href="https://wa.me/918123422932" target="_blank" class="cta-button">Message BillBolo →</a>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-col">
+                <h4>BillBolo</h4>
+                <p>Virtual Munshi inside WhatsApp</p>
+                <p><a href="index.html#about">About Us</a></p>
+                <p><a href="index.html#features">Services</a></p>
+                <p><a href="https://forms.gle/3fGvq1kHYJ5VjZ4A7" target="_blank" rel="noopener">💬 Help us build this — 2 min survey</a></p>
+            </div>
+            <div class="footer-col">
+                <p><a href="privacy.html">Privacy Policy</a></p>
+                <p><a href="terms.html">Terms &amp; Conditions</a></p>
+                <p><a href="refund.html">Refund Policy</a></p>
+                <p><a href="cancellation.html">Cancellation Policy</a></p>
+            </div>
+            <div class="footer-col">
+                <p><strong>Contact:</strong></p>
+                <p><a href="mailto:billbolo.india@billbolo.in">billbolo.india@billbolo.in</a></p>
+                <p><a href="https://wa.me/918123422932" target="_blank">WhatsApp: +91 81234 22932</a></p>
+                <p>&copy; 2026 BillBolo</p>
+            </div>
+        </div>
+        <div class="footer-legal-card footer-made-in-india">
+            <p>Made with ❤️ in India</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="format-page.js"></script>
+    <script src="estimate-demo.js"></script>
+</body>
+</html>
