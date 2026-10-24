@@ -88,7 +88,12 @@ class LineItem(BaseModel):
     unit: str = Field(default="qty", description="Unit of measurement (sq ft, hrs, etc)")
     amount: Optional[float] = Field(None, description="Total amount (auto-calculated)")
     hsn_code: Optional[str] = Field(None, description="HSN/SAC code, if printed on the bill")
-    discount: Optional[float] = Field(None, description="Discount/coupon applied to this line, if printed on a bill")
+    discount: Optional[float] = Field(
+        None, description="Flat discount on this line, in INR - either printed on a bill, or requested when creating a new quotation"
+    )
+    discount_percent: Optional[float] = Field(
+        None, description="Percentage discount requested on this line when creating a new quotation (e.g. '10% off this item')"
+    )
     taxable_value: Optional[float] = Field(None, description="Value this line's tax is calculated on, if printed on a bill")
     sgst: Optional[float] = Field(None, description="SGST amount for this line, if printed on a bill")
     cgst: Optional[float] = Field(None, description="CGST amount for this line, if printed on a bill")
@@ -96,8 +101,14 @@ class LineItem(BaseModel):
     line_total: Optional[float] = Field(None, description="Final amount for this line as printed on a bill, after discount and tax")
 
     def calculate_amount(self) -> float:
-        """Calculate total amount for this item."""
-        self.amount = self.quantity * self.rate
+        """Calculate total amount for this item, net of any discount -
+        a flat discount if given, else one computed from discount_percent."""
+        gross = self.quantity * self.rate
+        discount = self.discount
+        if discount is None and self.discount_percent:
+            discount = gross * (self.discount_percent / 100)
+            self.discount = discount
+        self.amount = gross - (discount or 0)
         return self.amount
 
     def display_amount(self) -> float:
@@ -114,6 +125,12 @@ class ExtractedData(BaseModel):
     items: list[LineItem] = Field(default_factory=list, description="Line items")
     notes: Optional[str] = Field(None, description="Additional notes/terms")
     gst_percentage: Optional[float] = Field(default=18.0, description="GST percentage - 0 if the bill shows no GST")
+    discount_percent: Optional[float] = Field(
+        None, description="Percentage discount on the whole quotation/bill, e.g. '10% off the total' (not per-item)"
+    )
+    discount_amount: Optional[float] = Field(
+        None, description="Flat discount on the whole quotation/bill, in INR - either requested, or printed on a bill as an overall discount"
+    )
     total_before_gst: Optional[float] = Field(None, description="Subtotal before tax")
     gst_amount: Optional[float] = Field(None, description="GST amount")
     grand_total: Optional[float] = Field(None, description="Final total with tax")
@@ -328,7 +345,8 @@ JSON Schema:
             "unit": "sq ft|hrs|pcs|kg|etc",
             "amount": null,
             "hsn_code": "HSN or SAC code printed next to this item on the bill (or null if not present)",
-            "discount": "Discount/coupon amount printed on this line (or null if not present)",
+            "discount": "Flat discount on this line in INR - printed on a bill, OR a flat rupee discount requested for a new quotation line (or null)",
+            "discount_percent": "Percentage discount requested on this line for a NEW quotation, e.g. 10 for '10% off this item' (or null)",
             "taxable_value": "Taxable Value printed on this line (or null if not present)",
             "sgst": "SGST amount printed on this line (or null if not present)",
             "cgst": "CGST amount printed on this line (or null if not present)",
@@ -338,6 +356,8 @@ JSON Schema:
     ],
     "notes": "Payment terms, delivery details, etc (or null)",
     "gst_percentage": 18,
+    "discount_percent": "Percentage discount on the WHOLE quotation/bill (not per item), e.g. 5 for '5% off the total' (or null)",
+    "discount_amount": "Flat discount on the WHOLE quotation/bill in INR, requested or printed as an overall discount (or null)",
     "total_before_gst": null,
     "gst_amount": null,
     "grand_total": null,
@@ -364,6 +384,11 @@ Rules:
 8. If a bill/receipt shows the seller's business name, GSTIN, or address (usually printed at the top as the "Sold By" / letterhead), capture them in seller_name, seller_gstin, seller_address. Capture billing_address and shipping_address separately if both are printed (common on e-commerce invoices) - leave shipping_address null if only one address is shown. Capture order_date/invoice_date exactly as printed in order_date. Leave any of these null if not present on the bill - do not guess or invent them.
 9. If a bill/receipt has a per-line breakdown (Discount, Taxable Value, SGST, CGST or IGST, Total columns), capture each of those exactly as printed in that item's discount, taxable_value, sgst, cgst, igst and line_total fields. These are per-line figures, not the bill's overall totals. The line_total values across all items, summed together, should add up to (or very closely match) the bill's overall grand_total - if your captured figures don't reconcile, re-check the columns before finalizing. Leave any of these fields null if the bill doesn't show that level of detail.
 10. For an expense or invoice (data_type is "invoice" or "expense", not "quotation"), set expense_category to your best guess from EXACTLY one of: Materials, Labour, Transport, Rent, Utilities, Equipment, Office Supplies, Professional Fees, Other. Infer it from the seller/vendor name and the items - e.g. a hardware/building-materials shop is Materials, a petrol pump or vehicle-related bill is Transport, a mobile/electricity/internet bill is Utilities. If genuinely unclear, use "Other" rather than guessing wildly. Leave this null for quotations.
+11. For a NEW quotation (voice/text), discounts can be mentioned per-item or for the whole job - tell these apart carefully:
+    - A discount mentioned right after a specific item ("wardrobe 80 sq ft at 1600, give 10% off that" or "500 off the cabinet") belongs on that item's line: set discount_percent or discount on the matching item, not the document-level fields.
+    - A discount mentioned for the job as a whole ("give him 10% off the total", "flat 1000 off everything", "overall discount of 5%") belongs at the document level: set the top-level discount_percent or discount_amount, and leave every item's discount/discount_percent null.
+    - If no discount is mentioned anywhere, leave all discount fields null - do not invent one.
+    - Prefer a percentage field when the user said "%", and a flat amount field when they said a rupee figure. Never set both discount and discount_percent on the same item, or both discount_amount and discount_percent at the document level - pick the one that matches what was actually said.
 
 Return ONLY the JSON object, no other text."""
 
@@ -390,17 +415,16 @@ Return ONLY the JSON object, no other text."""
             for item in extracted.items:
                 item.calculate_amount()
 
-            if extracted.data_type == "quotation":
-                # New work being quoted - no existing total to read, so compute it.
-                extracted.total_before_gst = sum(item.amount or 0 for item in extracted.items)
-                extracted.gst_amount = extracted.total_before_gst * (extracted.gst_percentage / 100)
-                extracted.grand_total = extracted.total_before_gst + extracted.gst_amount
-            elif extracted.grand_total is None:
-                # Invoice/expense extracted from an existing bill - trust the printed
-                # total if we got one; only fall back to computing it if we didn't,
-                # since re-deriving it from items double-applies GST that's often
-                # already baked into the extracted rate.
-                extracted.total_before_gst = sum(item.amount or 0 for item in extracted.items)
+            if extracted.data_type == "quotation" or extracted.grand_total is None:
+                # New work being quoted (always computed), or an invoice/expense
+                # with no printed total we could trust directly - compute it,
+                # applying any whole-bill discount before GST.
+                subtotal = sum(item.amount or 0 for item in extracted.items)
+                if extracted.discount_amount is None and extracted.discount_percent:
+                    extracted.discount_amount = subtotal * (extracted.discount_percent / 100)
+                if extracted.discount_amount:
+                    subtotal -= extracted.discount_amount
+                extracted.total_before_gst = subtotal
                 extracted.gst_amount = extracted.total_before_gst * (extracted.gst_percentage / 100)
                 extracted.grand_total = extracted.total_before_gst + extracted.gst_amount
 

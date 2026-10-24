@@ -355,20 +355,23 @@ class PDFGenerator:
         fs = self.theme.font_scale
         is_formal = self.theme.header_style == "formal"
         is_minimal = self.theme.header_style == "minimal"
-        table_data = [["ITEM", "QTY", "RATE (Rs.)", "UNIT", "AMOUNT (Rs.)"]]
-        for item in extracted_data.items:
-            table_data.append([
-                item.item_name,
-                f"{item.quantity:,.2f}",
-                f"{item.rate:,.2f}",
-                item.unit,
-                f"{item.amount:,.2f}",
-            ])
+        has_discounts = any(item.discount for item in extracted_data.items)
 
-        table = Table(
-            table_data,
-            colWidths=[2.6 * inch, 0.75 * inch, 1 * inch, 0.65 * inch, 1.4 * inch],
-        )
+        if has_discounts:
+            table_data = [["ITEM", "QTY", "RATE (Rs.)", "UNIT", "DISCOUNT (Rs.)", "AMOUNT (Rs.)"]]
+            col_widths = [1.95 * inch, 0.6 * inch, 0.85 * inch, 0.5 * inch, 1.0 * inch, 1.5 * inch]
+        else:
+            table_data = [["ITEM", "QTY", "RATE (Rs.)", "UNIT", "AMOUNT (Rs.)"]]
+            col_widths = [2.6 * inch, 0.75 * inch, 1 * inch, 0.65 * inch, 1.4 * inch]
+
+        for item in extracted_data.items:
+            row = [item.item_name, f"{item.quantity:,.2f}", f"{item.rate:,.2f}", item.unit]
+            if has_discounts:
+                row.append(f"{item.discount:,.2f}" if item.discount else "—")
+            row.append(f"{item.amount:,.2f}")
+            table_data.append(row)
+
+        table = Table(table_data, colWidths=col_widths)
         n_rows = len(table_data)
         row_pad = 8 if fs >= 1 else 5.5
         style = [
@@ -376,11 +379,14 @@ class PDFGenerator:
             ("FONT", (0, 0), (-1, 0), "Helvetica-Bold", 8 * fs),
             ("ALIGN", (1, 0), (-1, -1), "RIGHT"),
             ("ALIGN", (0, 0), (0, -1), "LEFT"),
+            ("ALIGN", (3, 0), (3, -1), "CENTER"),
             ("FONT", (0, 1), (-1, -1), "Helvetica", 9.5 * fs),
             ("TEXTCOLOR", (0, 1), (-1, -1), self.TEXT_DARK),
             ("TOPPADDING", (0, 0), (-1, -1), row_pad),
             ("BOTTOMPADDING", (0, 0), (-1, -1), row_pad),
             ("LEFTPADDING", (0, 0), (0, -1), 6),
+            ("LEFTPADDING", (3, 0), (3, -1), 4),
+            ("RIGHTPADDING", (3, 0), (3, -1), 4),
             ("RIGHTPADDING", (-1, 0), (-1, -1), 6 if is_formal else 4),
         ]
         if is_minimal:
@@ -397,25 +403,33 @@ class PDFGenerator:
 
     def _build_totals_table(self, extracted_data: ExtractedData) -> Table:
         """Right-aligned totals block with the grand total as a confined
-        colored callout, not a full-width band."""
-        rows = [
-            ["Subtotal", f"Rs. {extracted_data.total_before_gst:,.2f}"],
-            [f"GST @ {extracted_data.gst_percentage}%", f"Rs. {extracted_data.gst_amount:,.2f}"],
-            ["Grand Total", f"Rs. {extracted_data.grand_total:,.2f}"],
-        ]
+        colored callout, not a full-width band. A whole-bill discount gets
+        its own row, between the pre-discount items total and the net
+        subtotal GST is calculated on."""
+        has_discount = bool(extracted_data.discount_amount)
+        rows = []
+        if has_discount:
+            gross_total = extracted_data.total_before_gst + extracted_data.discount_amount
+            rows.append(["Items Total", f"Rs. {gross_total:,.2f}"])
+            rows.append(["Discount", f"- Rs. {extracted_data.discount_amount:,.2f}"])
+        rows.append(["Subtotal", f"Rs. {extracted_data.total_before_gst:,.2f}"])
+        rows.append([f"GST @ {extracted_data.gst_percentage}%", f"Rs. {extracted_data.gst_amount:,.2f}"])
+        grand_total_row = len(rows)
+        rows.append(["Grand Total", f"Rs. {extracted_data.grand_total:,.2f}"])
+
         totals = Table(rows, colWidths=[1.6 * inch, 1.6 * inch])
         totals.setStyle(TableStyle([
             ("ALIGN", (0, 0), (-1, -1), "RIGHT"),
-            ("FONT", (0, 0), (-1, 1), "Helvetica", 9),
-            ("TEXTCOLOR", (0, 0), (-1, 1), self.TEXT_MUTED),
-            ("LINEBELOW", (0, 0), (-1, 0), 0.5, self.BORDER),
-            ("LINEBELOW", (0, 1), (-1, 1), 0.5, self.BORDER),
-            ("FONT", (0, 2), (-1, 2), "Helvetica-Bold", 11.5),
-            ("TEXTCOLOR", (0, 2), (-1, 2), self.BRAND_DARK),
-            ("LINEABOVE", (0, 2), (-1, 2), 1.5, self.BRAND_PRIMARY),
+            ("FONT", (0, 0), (-1, grand_total_row - 1), "Helvetica", 9),
+            ("TEXTCOLOR", (0, 0), (-1, grand_total_row - 1), self.TEXT_MUTED),
+            ("LINEBELOW", (0, grand_total_row - 2), (-1, grand_total_row - 2), 0.5, self.BORDER),
+            ("LINEBELOW", (0, grand_total_row - 1), (-1, grand_total_row - 1), 0.5, self.BORDER),
+            ("FONT", (0, grand_total_row), (-1, grand_total_row), "Helvetica-Bold", 11.5),
+            ("TEXTCOLOR", (0, grand_total_row), (-1, grand_total_row), self.BRAND_DARK),
+            ("LINEABOVE", (0, grand_total_row), (-1, grand_total_row), 1.5, self.BRAND_PRIMARY),
             ("TOPPADDING", (0, 0), (-1, -1), 6),
             ("BOTTOMPADDING", (0, 0), (-1, -1), 6),
-            ("TOPPADDING", (0, 2), (-1, 2), 10),
+            ("TOPPADDING", (0, grand_total_row), (-1, grand_total_row), 10),
             ("RIGHTPADDING", (0, 0), (-1, -1), 0),
         ]))
 
