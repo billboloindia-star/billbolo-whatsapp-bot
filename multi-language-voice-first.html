@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Language, Voice-First — BillBolo</title>
+    <meta name="description" content="Talk naturally in Hindi, Bengali, Tamil, Telugu, Marathi or English — and get back a quotation or invoice written in that same language.">
+    <link rel="canonical" href="https://billbolo.in/multi-language-voice-first.html">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://billbolo.in/multi-language-voice-first.html">
+    <meta property="og:title" content="Multi-Language, Voice-First — BillBolo">
+    <meta property="og:description" content="Talk naturally in Hindi, Bengali, Tamil, Telugu, Marathi or English — and get back a quotation or invoice written in that same language.">
+    <meta property="og:image" content="https://billbolo.in/assets/og-image.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-format.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg">
+</head>
+<body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><img src="assets/logo-full.svg" alt="BillBolo" class="logo-img"></a>
+            <div class="nav-links">
+                <a href="index.html#features">Features</a>
+                <a href="privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="format-hero">
+        <div class="container">
+            <p class="format-breadcrumb"><a href="index.html">Home</a> &rsaquo; <a href="index.html#features">Features</a> &rsaquo; Multi-Language, Voice-First</p>
+            <div class="icon-badge icon-badge-lg" style="margin: 0 auto 1.5rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg>
+            </div>
+            <h1>Multi-Language, Voice-First</h1>
+            <p class="format-hero-sub">Talk naturally in Hindi, Bengali, Tamil, Telugu, Marathi or English — and get back a quotation or invoice with item and client names written in that same language.</p>
+            <div class="format-hero-cta">
+                <a href="https://wa.me/918123422932" target="_blank" class="hero-cta-primary-dark">Start on WhatsApp →</a>
+                <a href="index.html#features" class="hero-cta-outline">See all features</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-intro">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">How It Works</p>
+            <h2>Not just understood — written back the same way</h2>
+        </div>
+        <p class="format-intro-body reveal">Plenty of tools can understand a Hindi or Tamil voice note. BillBolo goes further: the quotation or invoice it generates has the item names and client name written in that same language and script — not translated into English, not transliterated into Latin letters. Headers like ITEM, QTY, and GRAND TOTAL stay in clean English so the document still reads like a proper business invoice, with your content exactly as you said it.</p>
+        <p class="format-intro-body reveal" style="transition-delay: 0.05s">No menus to navigate, no language setting to find — just speak or type naturally, in whichever language is comfortable.</p>
+    </section>
+
+    <section class="demo-section">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Try It Right Here</p>
+            <h2>See it work, no signup needed</h2>
+            <p>Describe a job in Hindi, Bengali, Tamil, Telugu, Marathi or English below — this is a live demo, nothing is saved anywhere.</p>
+        </div>
+        <div class="demo-box reveal">
+            <textarea id="quoteDemoInput" class="demo-textarea" rows="3" placeholder="e.g. शर्मा जी के लिए कोटेशन बनाओ, 80 स्क्वायर फीट अलमारी 1600 रुपये प्रति स्क्वायर फीट की दर से">शर्मा जी के लिए कोटेशन बनाओ, 80 स्क्वायर फीट अलमारी 1600 रुपये प्रति स्क्वायर फीट की दर से, hindi me item likho</textarea>
+            <p class="demo-lang-note">Type in Hindi, Bengali, Tamil, Telugu, Marathi or English — or tap the mic and speak.</p>
+            <div class="demo-btn-row">
+                <button id="quoteDemoMic" class="demo-mic-btn" type="button" title="Speak instead">🎤</button>
+                <button id="quoteDemoSubmit" class="demo-submit-btn">Generate Quotation</button>
+            </div>
+
+            <div id="quoteDemoError" class="demo-error" style="display: none;"></div>
+
+            <div id="quoteDemoResult" class="demo-result" style="display: none;">
+                <div class="demo-result-header">
+                    <span id="quoteDemoClient" class="demo-result-vendor"></span>
+                </div>
+                <div id="quoteDemoItems" class="demo-result-items"></div>
+                <div class="demo-result-total">
+                    <span>Grand Total</span>
+                    <span id="quoteDemoTotal"></span>
+                </div>
+                <a id="quoteDemoPdfLink" class="format-compare-cta" href="#" download="billbolo-sample-quotation.pdf" style="display: inline-block; margin-top: 1rem;">Download Sample PDF</a>
+                <p class="demo-result-note">Open the PDF to see the item and client name in native script — headers stay in English, exactly like a real BillBolo document.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-compare">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Before You Type It All in English</p>
+            <h2>Should You Translate It Yourself?</h2>
+            <p>Typing everything in English because "that's what billing software expects" is a habit — here's what it costs you.</p>
+        </div>
+        <div class="compare-grid">
+            <div class="compare-col compare-col-limit reveal">
+                <h3>✕ Typing it in English yourself</h3>
+                <ul>
+                    <li>Translating item names in your head before typing</li>
+                    <li>Losing the exact wording your client actually used</li>
+                    <li>Slower than just saying it the way you'd naturally say it</li>
+                    <li>Awkward for clients more comfortable reading their own language</li>
+                    <li>Stuck using whatever language the software was built in</li>
+                </ul>
+            </div>
+            <div class="compare-col compare-col-bolo reveal" style="transition-delay: 0.1s">
+                <h3>✓ With BillBolo</h3>
+                <ul>
+                    <li>Speak or type naturally — Hindi, Bengali, Tamil, Telugu, Marathi, English</li>
+                    <li>Item and client names come back exactly as you said them</li>
+                    <li>Headers stay in clean English, so the document still reads professionally</li>
+                    <li>A document your client can read comfortably, in their language</li>
+                    <li>No settings, no menus — just talk however you normally would</li>
+                </ul>
+                <a href="https://wa.me/918123422932" target="_blank" class="format-compare-cta">Try it on WhatsApp →</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-faq">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Got Questions?</p>
+            <h2>Frequently Asked Questions</h2>
+        </div>
+        <div class="faq-list">
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Which languages are supported?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Hindi, Bengali, Tamil, Telugu, Marathi and English today, with item and client names written in the correct native script on the actual PDF — not just understood and replied to in English.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Do the headers and totals also appear in my language?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">No — labels like ITEM, QTY, RATE and GRAND TOTAL stay in English so the document still reads like a standard business invoice. Only your actual content (client name, item names, notes) appears in the language you used.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Can I mix languages, like Hinglish?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes — BillBolo understands Hinglish and other mixed-language speech just fine. The output script follows whichever language you were clearly speaking in.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Does this work for both voice notes and typed messages?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes — speak a voice note or type a text message, both work the same way, in any of the supported languages.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Does this apply to invoices too, not just quotations?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes — invoices generated directly, or converted from an existing quotation, carry the same native-script support.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Do I need any accounting software to use this?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">No. There's nothing to install or set up — you just talk to BillBolo on WhatsApp, the same app you already use every day.</span>
+            </button>
+        </div>
+    </section>
+
+    <section class="cta-section reveal">
+        <h2>Try it yourself, right now</h2>
+        <p>Message BillBolo on WhatsApp — no signup, no download, just send a message.</p>
+        <a href="https://wa.me/918123422932" target="_blank" class="cta-button">Message BillBolo →</a>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-col">
+                <h4>BillBolo</h4>
+                <p>Virtual Munshi inside WhatsApp</p>
+                <p><a href="index.html#about">About Us</a></p>
+                <p><a href="index.html#features">Services</a></p>
+                <p><a href="https://forms.gle/3fGvq1kHYJ5VjZ4A7" target="_blank" rel="noopener">💬 Help us build this — 2 min survey</a></p>
+            </div>
+            <div class="footer-col">
+                <p><a href="privacy.html">Privacy Policy</a></p>
+                <p><a href="terms.html">Terms &amp; Conditions</a></p>
+                <p><a href="refund.html">Refund Policy</a></p>
+                <p><a href="cancellation.html">Cancellation Policy</a></p>
+            </div>
+            <div class="footer-col">
+                <p><strong>Contact:</strong></p>
+                <p><a href="mailto:billbolo.india@billbolo.in">billbolo.india@billbolo.in</a></p>
+                <p><a href="https://wa.me/918123422932" target="_blank">WhatsApp: +91 81234 22932</a></p>
+                <p>&copy; 2026 BillBolo</p>
+            </div>
+        </div>
+        <div class="footer-legal-card footer-made-in-india">
+            <p>Made with ❤️ in India</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="format-page.js"></script>
+    <script src="quotation-demo.js"></script>
+</body>
+</html>
