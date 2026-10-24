@@ -56,6 +56,33 @@
         <p class="format-intro-body reveal" style="transition-delay: 0.05s">For GST-registered businesses in India, a proper quotation also breaks out the applicable tax — CGST and SGST for work within the state, IGST for interstate — so there are no surprises on the final number later.</p>
     </section>
 
+    <section class="demo-section">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Try It Right Here</p>
+            <h2>See it work, no signup needed</h2>
+            <p>Describe the job below — this is a live demo, nothing is saved anywhere.</p>
+        </div>
+        <div class="demo-box reveal">
+            <textarea id="quoteDemoInput" class="demo-textarea" rows="3" placeholder="e.g. Quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft"></textarea>
+            <button id="quoteDemoSubmit" class="demo-submit-btn">Generate Quotation</button>
+
+            <div id="quoteDemoError" class="demo-error" style="display: none;"></div>
+
+            <div id="quoteDemoResult" class="demo-result" style="display: none;">
+                <div class="demo-result-header">
+                    <span id="quoteDemoClient" class="demo-result-vendor"></span>
+                </div>
+                <div id="quoteDemoItems" class="demo-result-items"></div>
+                <div class="demo-result-total">
+                    <span>Grand Total</span>
+                    <span id="quoteDemoTotal"></span>
+                </div>
+                <a id="quoteDemoPdfLink" class="format-compare-cta" href="#" download="billbolo-sample-quotation.pdf" style="display: inline-block; margin-top: 1rem;">Download Sample PDF</a>
+                <p class="demo-result-note">This is exactly what gets generated automatically when you send this on WhatsApp.</p>
+            </div>
+        </div>
+    </section>
+
     <!-- Template gallery -->
     <section class="format-gallery" id="templates">
         <div class="section-header reveal">
@@ -319,5 +346,6 @@
 
     <script src="script.js"></script>
     <script src="format-page.js"></script>
+    <script src="quotation-demo.js"></script>
 </body>
 </html>
