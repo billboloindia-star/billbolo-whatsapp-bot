@@ -152,6 +152,51 @@
     cursor: not-allowed;
 }
 
+.demo-lang-note {
+    font-family: var(--font-body);
+    font-size: 0.8rem;
+    color: var(--text-tertiary);
+    margin-top: 0.6rem;
+    text-align: center;
+}
+
+.demo-btn-row {
+    display: flex;
+    gap: 0.6rem;
+    margin-top: 1rem;
+}
+
+.demo-btn-row .demo-submit-btn {
+    margin-top: 0;
+}
+
+.demo-mic-btn {
+    flex-shrink: 0;
+    width: 3rem;
+    height: 3rem;
+    border-radius: 50%;
+    border: 2px solid var(--border-color);
+    background: white;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.demo-mic-btn:hover {
+    border-color: var(--primary);
+}
+
+.demo-mic-btn.recording {
+    background: #FEF2F2;
+    border-color: #EF4444;
+    animation: demo-mic-pulse 1.2s infinite;
+}
+
+@keyframes demo-mic-pulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.4); }
+    50% { box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+}
+
 .demo-drop-label {
     display: flex;
     flex-direction: column;
