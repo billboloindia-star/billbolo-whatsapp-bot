@@ -18,6 +18,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (!submitBtn) return;
 
+    const defaultBtnLabel = submitBtn.textContent;
+
     function formatInr(amount) {
         const n = Number(amount) || 0;
         return n.toLocaleString("en-IN", { maximumFractionDigits: 2 });
@@ -90,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
             showError("Couldn't reach the server. Please try again.");
         } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = "Generate Quotation";
+            submitBtn.textContent = defaultBtnLabel;
         }
     }
 
@@ -118,7 +120,7 @@ document.addEventListener("DOMContentLoaded", () => {
         } finally {
             submitBtn.disabled = false;
             micBtn.disabled = false;
-            submitBtn.textContent = "Generate Quotation";
+            submitBtn.textContent = defaultBtnLabel;
         }
     }
 
