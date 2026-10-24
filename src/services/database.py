@@ -27,6 +27,49 @@ def _to_decimal(value: Any) -> Any:
     return value
 
 
+def from_decimal(value: Any) -> Any:
+    """Recursively convert DynamoDB's Decimal back to int/float - needed
+    before any DB item (or anything nested inside it, like a quotation's
+    items list) goes into a JSON response."""
+    if isinstance(value, Decimal):
+        return int(value) if value % 1 == 0 else float(value)
+    if isinstance(value, dict):
+        return {k: from_decimal(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [from_decimal(v) for v in value]
+    return value
+
+
+def normalize_phone(raw: str) -> Optional[str]:
+    """Normalize an Indian phone number to the bot's canonical format - digits
+    only, E.164 without the leading '+' (e.g. "919876543210"), the exact
+    format the WhatsApp Cloud API sends as message["from"]. This is the
+    shared identity key between the WhatsApp bot and the web app, so any
+    number entered on the web (any punctuation/spacing/+prefix) has to
+    normalize to the same string a real WhatsApp message would carry.
+    Returns None if it doesn't look like a valid Indian mobile number."""
+    digits = "".join(c for c in (raw or "") if c.isdigit())
+    if len(digits) == 10:
+        digits = "91" + digits
+    elif len(digits) == 11 and digits.startswith("0"):
+        digits = "91" + digits[1:]
+    elif len(digits) == 12 and digits.startswith("91"):
+        pass
+    else:
+        return None
+    # A valid Indian mobile number is 91 + a 10-digit number starting 6-9.
+    if len(digits) != 12 or digits[2] not in "6789":
+        return None
+    return digits
+
+
+def clean_timestamp(composite_created_at: str) -> str:
+    """Most entity sort keys are '<iso timestamp>#<id>' so items for the same
+    phone_number/second don't collide. Strip the '#<id>' suffix for display -
+    the web app just wants a plain timestamp, not DynamoDB's key encoding."""
+    return (composite_created_at or "").split("#")[0]
+
+
 class DynamoDBClient:
     """Defensive DynamoDB wrapper with comprehensive error handling."""
 
@@ -40,8 +83,14 @@ class DynamoDBClient:
         business_name: str,
         sheet_id: Optional[str] = None,
         ttl_days: int = 365,
+        email: Optional[str] = None,
+        password_hash: Optional[str] = None,
     ) -> bool:
-        """Create a new user profile with initial 5 free credits."""
+        """Create a new user profile with initial 5 free credits. email/
+        password_hash are only ever set by web app signup - a profile
+        created by a first WhatsApp message has neither, and can later be
+        "claimed" with a password via update_profile_credentials() so the
+        same phone number is one identity on both sides."""
         try:
             item = {
                 "phone_number": phone_number,
@@ -50,6 +99,8 @@ class DynamoDBClient:
                 "credits_used": 0,
                 "is_pro": False,
                 "sheet_id": sheet_id or "",
+                "email": email or "",
+                "password_hash": password_hash or "",
                 "updated_at": datetime.utcnow().isoformat(),
                 "expires_at": int(
                     (datetime.utcnow() + timedelta(days=ttl_days)).timestamp()
@@ -60,6 +111,35 @@ class DynamoDBClient:
             return True
         except (BotoCoreError, ClientError) as e:
             logger.error(f"Failed to create user profile: {e}")
+            return False
+
+    def update_profile_credentials(
+        self, phone_number: str, email: Optional[str] = None, password_hash: Optional[str] = None
+    ) -> bool:
+        """Set/update email and/or password_hash on an existing profile -
+        used both to "claim" an existing WhatsApp-only profile with a web
+        login, and to change password later."""
+        try:
+            profile = self.get_user_profile(phone_number)
+            if not profile:
+                return False
+            updates, values, names = [], {}, {}
+            if email is not None:
+                updates.append("email = :e")
+                values[":e"] = email
+            if password_hash is not None:
+                updates.append("password_hash = :p")
+                values[":p"] = password_hash
+            if not updates:
+                return True
+            self.table.update_item(
+                Key={"phone_number": profile["phone_number"], "created_at": profile["created_at"]},
+                UpdateExpression="SET " + ", ".join(updates),
+                ExpressionAttributeValues=values,
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to update profile credentials: {e}")
             return False
 
     def create_expense(
@@ -76,33 +156,69 @@ class DynamoDBClient:
         shipping_address: Optional[str] = None,
         order_date: Optional[str] = None,
         category: Optional[str] = None,
-    ) -> bool:
-        """Persist an expense logged via WhatsApp. Stored under a distinct
-        partition key (expense#<phone>) so it doesn't collide with the
-        user's own profile item, which uses the bare phone_number."""
+    ) -> Optional[dict]:
+        """Persist an expense logged via WhatsApp or the web app. Stored
+        under a distinct partition key (expense#<phone>) so it doesn't
+        collide with the user's own profile item, which uses the bare
+        phone_number. Returns the created item (with expense_id), or None
+        on failure."""
         try:
-            sort_key = f"{datetime.utcnow().isoformat()}#{uuid.uuid4().hex[:8]}"
-            self.table.put_item(
-                Item={
-                    "phone_number": f"expense#{phone_number}",
-                    "created_at": sort_key,
-                    "vendor": vendor or "",
-                    "amount": _to_decimal(amount),
-                    "notes": notes or "",
-                    "items": _to_decimal(items or []),
-                    "seller_name": seller_name or "",
-                    "seller_gstin": seller_gstin or "",
-                    "seller_address": seller_address or "",
-                    "billing_address": billing_address or "",
-                    "shipping_address": shipping_address or "",
-                    "order_date": order_date or "",
-                    "category": category or "Other",
-                    "expires_at": int((datetime.utcnow() + timedelta(days=730)).timestamp()),
-                }
+            expense_id = uuid.uuid4().hex
+            sort_key = f"{datetime.utcnow().isoformat()}#{expense_id[:8]}"
+            item = {
+                "phone_number": f"expense#{phone_number}",
+                "created_at": sort_key,
+                "expense_id": expense_id,
+                "vendor": vendor or "",
+                "amount": _to_decimal(amount),
+                "notes": notes or "",
+                "items": _to_decimal(items or []),
+                "seller_name": seller_name or "",
+                "seller_gstin": seller_gstin or "",
+                "seller_address": seller_address or "",
+                "billing_address": billing_address or "",
+                "shipping_address": shipping_address or "",
+                "order_date": order_date or "",
+                "category": category or "Other",
+                "expires_at": int((datetime.utcnow() + timedelta(days=730)).timestamp()),
+            }
+            self.table.put_item(Item=item)
+            return item
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to create expense: {e}")
+            return None
+
+    def update_expense(
+        self, phone_number: str, expense_id: str, vendor: str, amount: float, notes: str = "", category: Optional[str] = None
+    ) -> bool:
+        expense = next((e for e in self.list_expenses(phone_number) if e.get("expense_id") == expense_id), None)
+        if not expense:
+            return False
+        try:
+            self.table.update_item(
+                Key={"phone_number": expense["phone_number"], "created_at": expense["created_at"]},
+                UpdateExpression="SET vendor = :v, amount = :a, notes = :n, category = :c",
+                ExpressionAttributeValues={
+                    ":v": vendor,
+                    ":a": _to_decimal(amount),
+                    ":n": notes,
+                    ":c": category or expense.get("category", "Other"),
+                },
             )
             return True
         except (BotoCoreError, ClientError) as e:
-            logger.error(f"Failed to create expense: {e}")
+            logger.error(f"Failed to update expense: {e}")
+            return False
+
+    def delete_expense(self, phone_number: str, expense_id: str) -> bool:
+        expense = next((e for e in self.list_expenses(phone_number) if e.get("expense_id") == expense_id), None)
+        if not expense:
+            return False
+        try:
+            self.table.delete_item(Key={"phone_number": expense["phone_number"], "created_at": expense["created_at"]})
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to delete expense: {e}")
             return False
 
     def list_expenses(self, phone_number: str) -> list[dict]:
@@ -132,10 +248,12 @@ class DynamoDBClient:
         as expenses. No TTL by default - an unpaid debt shouldn't silently
         vanish; ttl_days is only passed for throwaway demo data."""
         try:
-            sort_key = f"{datetime.utcnow().isoformat()}#{uuid.uuid4().hex[:8]}"
+            ledger_id = uuid.uuid4().hex
+            sort_key = f"{datetime.utcnow().isoformat()}#{ledger_id[:8]}"
             item = {
                 "phone_number": f"ledger#{phone_number}",
                 "created_at": sort_key,
+                "ledger_id": ledger_id,
                 "client_name": client_name,
                 "client_name_lower": client_name.lower(),
                 "amount": _to_decimal(amount),
@@ -194,6 +312,26 @@ class DynamoDBClient:
             except (BotoCoreError, ClientError) as e:
                 logger.error(f"Failed to mark ledger entry paid: {e}")
         return paid_now
+
+    def mark_ledger_entry_by_id(self, phone_number: str, ledger_id: str) -> bool:
+        """Mark a single ledger entry as paid by its id - the web app's
+        version of 'mark as paid' (one entry, picked explicitly in the UI),
+        as opposed to the WhatsApp assistant's 'mark this whole client's
+        balance as paid' behavior."""
+        entry = next((e for e in self.list_ledger_entries(phone_number) if e.get("ledger_id") == ledger_id), None)
+        if not entry:
+            return False
+        try:
+            self.table.update_item(
+                Key={"phone_number": entry["phone_number"], "created_at": entry["created_at"]},
+                UpdateExpression="SET #s = :paid, paid_at = :ts",
+                ExpressionAttributeNames={"#s": "status"},
+                ExpressionAttributeValues={":paid": "paid", ":ts": datetime.utcnow().isoformat()},
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to mark ledger entry paid: {e}")
+            return False
 
     def get_ledger_balances(self, phone_number: str, client_name_query: Optional[str] = None) -> list[dict]:
         """Aggregate unpaid ledger entries into a per-client balance list,
@@ -413,6 +551,91 @@ class DynamoDBClient:
             return True
         except (BotoCoreError, ClientError) as e:
             logger.error(f"Failed to mark quotation converted: {e}")
+            return False
+
+    def set_quotation_pdf_key(self, quotation: dict, pdf_s3_key: str) -> bool:
+        """Attach the S3 key for a quotation's generated PDF, so the web app
+        can later re-fetch it via a presigned URL without regenerating it."""
+        try:
+            self.table.update_item(
+                Key={"phone_number": quotation["phone_number"], "created_at": quotation["created_at"]},
+                UpdateExpression="SET pdf_s3_key = :k",
+                ExpressionAttributeValues={":k": pdf_s3_key},
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to set quotation PDF key: {e}")
+            return False
+
+    def create_client(self, phone_number: str, name: str, client_phone: str = "", notes: str = "") -> Optional[dict]:
+        """Save a client explicitly (via the web app's Add Client form, or a
+        WhatsApp 'add a client' voice command) - distinct from client_name
+        strings that just appear on ledger entries/quotations."""
+        try:
+            client_id = uuid.uuid4().hex
+            item = {
+                "phone_number": f"client#{phone_number}",
+                "created_at": f"{datetime.utcnow().isoformat()}#{client_id[:8]}",
+                "client_id": client_id,
+                "name": name,
+                "phone": client_phone,
+                "notes": notes,
+            }
+            self.table.put_item(Item=item)
+            return item
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to create client: {e}")
+            return None
+
+    def list_clients(self, phone_number: str) -> list[dict]:
+        try:
+            response = self.table.query(
+                KeyConditionExpression="phone_number = :pn",
+                ExpressionAttributeValues={":pn": f"client#{phone_number}"},
+                ScanIndexForward=False,
+            )
+            return response.get("Items", [])
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to list clients: {e}")
+            return []
+
+    def delete_client(self, phone_number: str, client_id: str) -> bool:
+        client = next((c for c in self.list_clients(phone_number) if c.get("client_id") == client_id), None)
+        if not client:
+            return False
+        try:
+            self.table.delete_item(Key={"phone_number": client["phone_number"], "created_at": client["created_at"]})
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to delete client: {e}")
+            return False
+
+    def count_this_month(self, phone_number: str, entity_prefix: str) -> int:
+        """Count how many items of a given type (expense/quotation/ledger/
+        voicecmd) a user has created in the current calendar month - used
+        for the web app's free-tier quotas. entity_prefix is the bare
+        prefix used elsewhere (e.g. "expense", "quotation")."""
+        month = datetime.utcnow().strftime("%Y-%m")
+        try:
+            response = self.table.query(
+                KeyConditionExpression="phone_number = :pn AND begins_with(created_at, :m)",
+                ExpressionAttributeValues={":pn": f"{entity_prefix}#{phone_number}", ":m": month},
+                Select="COUNT",
+            )
+            return response.get("Count", 0)
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to count items for quota check ({entity_prefix}): {e}")
+            return 0
+
+    def log_voice_command_usage(self, phone_number: str) -> bool:
+        """Write a minimal marker item so count_this_month(..., 'voicecmd')
+        can rate-limit web app voice classification calls."""
+        try:
+            sort_key = f"{datetime.utcnow().isoformat()}#{uuid.uuid4().hex[:8]}"
+            self.table.put_item(Item={"phone_number": f"voicecmd#{phone_number}", "created_at": sort_key})
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to log voice command usage: {e}")
             return False
 
     def get_user_profile(self, phone_number: str) -> Optional[dict]:
