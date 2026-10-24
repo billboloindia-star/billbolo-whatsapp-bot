@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multiple Invoice Themes — BillBolo</title>
+    <meta name="description" content="Pick a look that fits your brand — the same clean themes you use for quotations, now for real invoices with due dates and payment tracking.">
+    <link rel="canonical" href="https://billbolo.in/invoice-themes.html">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://billbolo.in/invoice-themes.html">
+    <meta property="og:title" content="Multiple Invoice Themes — BillBolo">
+    <meta property="og:description" content="Pick a look that fits your brand — the same clean themes you use for quotations, now for real invoices with due dates and payment tracking.">
+    <meta property="og:image" content="https://billbolo.in/assets/og-image.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-format.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg">
+</head>
+<body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><img src="assets/logo-full.svg" alt="BillBolo" class="logo-img"></a>
+            <div class="nav-links">
+                <a href="index.html#features">Features</a>
+                <a href="privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="format-hero">
+        <div class="container">
+            <p class="format-breadcrumb"><a href="index.html">Home</a> &rsaquo; <a href="index.html#features">Features</a> &rsaquo; Multiple Invoice Themes</p>
+            <div class="icon-badge icon-badge-lg" style="margin: 0 auto 1.5rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg>
+            </div>
+            <h1>Multiple Invoice Themes</h1>
+            <p class="format-hero-sub">Pick a look that fits your brand — the same clean themes you use for quotations, now for real invoices with due dates and payment tracking.</p>
+            <div class="format-hero-cta">
+                <a href="https://wa.me/918123422932" target="_blank" class="hero-cta-primary-dark">Start on WhatsApp →</a>
+                <a href="index.html#features" class="hero-cta-outline">See all features</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-intro">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">How It Works</p>
+            <h2>One request, a real invoice — not just a quotation</h2>
+        </div>
+        <p class="format-intro-body reveal">Say "invoice" instead of "quotation" when you describe the job, and BillBolo knows the difference — a real invoice with a due date, payment mode, and balance due tracking (how much has been paid, and what's still owed), not just a price estimate.</p>
+        <p class="format-intro-body reveal" style="transition-delay: 0.05s">Every invoice comes in four themes — Minimal, Bold, Formal, Compact — the same ones your quotations already use, so your documents look consistent no matter which one you're sending.</p>
+    </section>
+
+    <section class="demo-section">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Try It Right Here</p>
+            <h2>See it work, no signup needed</h2>
+            <p>Describe a job as an invoice below — this is a live demo, nothing is saved anywhere.</p>
+        </div>
+        <div class="demo-box reveal">
+            <textarea id="quoteDemoInput" class="demo-textarea" rows="3" placeholder="e.g. Invoice Ramesh for cabinet work, 50 sq ft at 1200 per sq ft, due in 15 days, paid 20000 by UPI">Invoice Ramesh for cabinet work, 50 sq ft at 1200 per sq ft, due in 15 days, paid 20000 by UPI</textarea>
+            <p class="demo-lang-note">Type in English, Hindi, or any Indian language — or tap the mic and speak.</p>
+            <div class="demo-btn-row">
+                <button id="quoteDemoMic" class="demo-mic-btn" type="button" title="Speak instead">🎤</button>
+                <button id="quoteDemoSubmit" class="demo-submit-btn">Generate Invoice</button>
+            </div>
+
+            <div id="quoteDemoError" class="demo-error" style="display: none;"></div>
+
+            <div id="quoteDemoResult" class="demo-result" style="display: none;">
+                <div class="demo-result-header">
+                    <span id="quoteDemoClient" class="demo-result-vendor"></span>
+                </div>
+                <div id="quoteDemoItems" class="demo-result-items"></div>
+                <div class="demo-result-total">
+                    <span>Grand Total</span>
+                    <span id="quoteDemoTotal"></span>
+                </div>
+                <a id="quoteDemoPdfLink" class="format-compare-cta" href="#" download="billbolo-sample-invoice.pdf" style="display: inline-block; margin-top: 1rem;">Download Sample PDF</a>
+                <p class="demo-result-note">This is exactly what gets generated automatically when you send this on WhatsApp.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-compare">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Before You Reach for a Template Download</p>
+            <h2>Should You Fill a Blank Invoice Template Yourself?</h2>
+            <p>A downloaded Word or Excel template is a start — but here's what it can't do.</p>
+        </div>
+        <div class="compare-grid">
+            <div class="compare-col compare-col-limit reveal">
+                <h3>✕ Filling it out yourself</h3>
+                <ul>
+                    <li>Re-typing client and item details you've already quoted</li>
+                    <li>Manually tracking what's been paid vs. what's still owed</li>
+                    <li>Working out due dates and GST by hand, every time</li>
+                    <li>One fixed template, whether or not it fits this client</li>
+                    <li>No automatic invoice numbering</li>
+                    <li>Formatting breaks the moment you add or remove a line</li>
+                </ul>
+            </div>
+            <div class="compare-col compare-col-bolo reveal" style="transition-delay: 0.1s">
+                <h3>✓ With BillBolo</h3>
+                <ul>
+                    <li>Just describe the job — client, items, and rates filled in automatically</li>
+                    <li>Amount Paid and Balance Due tracked and shown clearly</li>
+                    <li>Due dates and GST calculated correctly, every time</li>
+                    <li>Four themes to choose from, matched to your brand</li>
+                    <li>Invoice numbers generated automatically</li>
+                    <li>A clean, properly formatted PDF every single time</li>
+                </ul>
+                <a href="https://wa.me/918123422932" target="_blank" class="format-compare-cta">Try it on WhatsApp →</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-faq">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Got Questions?</p>
+            <h2>Frequently Asked Questions</h2>
+        </div>
+        <div class="faq-list">
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">How is an invoice different from a quotation on BillBolo?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">A quotation is a price estimate before work starts. An invoice is a request for payment, with its own number, a due date, payment mode, and Amount Paid/Balance Due tracking — just say "invoice" instead of "quotation" when describing the job.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">How do I switch between the different themes?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Tell BillBolo which theme you'd like — Minimal, Bold, Formal, or Compact — and it applies to your invoices and quotations alike, so your documents stay consistent.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Can I record a partial payment on an invoice?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes — mention how much has been paid and how (e.g. "paid 20000 by UPI") and the invoice shows Amount Paid and Balance Due separately, so it's clear what's still outstanding.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Can I bill a repeat client for multiple jobs at once?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes — describe each dated transaction and BillBolo generates a cumulative bill with a date column per line, for clients you invoice periodically rather than per job.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Does the invoice include GST the same way a quotation does?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes — the same GST calculation, HSN codes, and discount handling as quotations carry over to invoices, so there's nothing extra to learn.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Do I need any accounting software to use this?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">No. There's nothing to install or set up — you just describe the job on WhatsApp, the same app you already use every day.</span>
+            </button>
+        </div>
+    </section>
+
+    <section class="cta-section reveal">
+        <h2>Try it yourself, right now</h2>
+        <p>Message BillBolo on WhatsApp — no signup, no download, just send a message.</p>
+        <a href="https://wa.me/918123422932" target="_blank" class="cta-button">Message BillBolo →</a>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-col">
+                <h4>BillBolo</h4>
+                <p>Virtual Munshi inside WhatsApp</p>
+                <p><a href="index.html#about">About Us</a></p>
+                <p><a href="index.html#features">Services</a></p>
+                <p><a href="https://forms.gle/3fGvq1kHYJ5VjZ4A7" target="_blank" rel="noopener">💬 Help us build this — 2 min survey</a></p>
+            </div>
+            <div class="footer-col">
+                <p><a href="privacy.html">Privacy Policy</a></p>
+                <p><a href="terms.html">Terms &amp; Conditions</a></p>
+                <p><a href="refund.html">Refund Policy</a></p>
+                <p><a href="cancellation.html">Cancellation Policy</a></p>
+            </div>
+            <div class="footer-col">
+                <p><strong>Contact:</strong></p>
+                <p><a href="mailto:billbolo.india@billbolo.in">billbolo.india@billbolo.in</a></p>
+                <p><a href="https://wa.me/918123422932" target="_blank">WhatsApp: +91 81234 22932</a></p>
+                <p>&copy; 2026 BillBolo</p>
+            </div>
+        </div>
+        <div class="footer-legal-card footer-made-in-india">
+            <p>Made with ❤️ in India</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="format-page.js"></script>
+    <script src="quotation-demo.js"></script>
+</body>
+</html>

@@ -266,8 +266,12 @@ class WebDemoHandler:
         return identifier, session_id
 
     def _build_success_response(self, extracted) -> JSONResponse:
-        """Generate the demo PDF and build the shared success response payload."""
-        pdf_bytes = self.pdf_gen.generate_quotation(
+        """Generate the demo PDF and build the shared success response payload.
+        Dispatches to a real invoice PDF (due date/payment mode/balance due)
+        when the text was classified as one, instead of always labeling the
+        output a quotation."""
+        generate_fn = self.pdf_gen.generate_invoice if extracted.data_type == "invoice" else self.pdf_gen.generate_quotation
+        pdf_bytes = generate_fn(
             extracted_data=extracted,
             business_info={"name": "BillBolo Demo"},
             is_pro=False,
@@ -281,11 +285,15 @@ class WebDemoHandler:
         return JSONResponse(
             status_code=200,
             content={
+                "data_type": extracted.data_type,
                 "client_name": extracted.client_name,
                 "items": [item.model_dump() for item in extracted.items],
                 "total_before_gst": extracted.total_before_gst,
                 "gst_amount": extracted.gst_amount,
                 "grand_total": extracted.grand_total,
+                "due_date": getattr(extracted, "due_date", None),
+                "payment_mode": getattr(extracted, "payment_mode", None),
+                "amount_paid": getattr(extracted, "amount_paid", None),
                 "pdf_base64": base64.standard_b64encode(pdf_bytes).decode("utf-8"),
             },
         )
