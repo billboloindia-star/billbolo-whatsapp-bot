@@ -59,20 +59,19 @@
 
     <section class="demo-section">
         <div class="section-header reveal">
-            <p class="section-eyebrow">See It In Action</p>
-            <h2>What it looks like on WhatsApp</h2>
-            <p>A real example of how a ledger entry gets logged, checked, and cleared.</p>
+            <p class="section-eyebrow">Try It Right Here</p>
+            <h2>See it work, no signup needed</h2>
+            <p>Type what you'd text BillBolo below — this is a live demo, nothing is saved beyond today.</p>
         </div>
         <div class="demo-box reveal">
-            <div class="ledger-chat">
-                <div class="ledger-chat-bubble ledger-chat-out">Ramesh owes me 2000 for tiling work</div>
-                <div class="ledger-chat-bubble ledger-chat-in">Added: Ramesh owes ₹2,000</div>
-                <div class="ledger-chat-bubble ledger-chat-out">who owes me money</div>
-                <div class="ledger-chat-bubble ledger-chat-in">Who owes you money:<br>Ramesh: ₹2,000<br>Suresh: ₹1,200<br><br>Total: ₹3,200</div>
-                <div class="ledger-chat-bubble ledger-chat-out">mark Ramesh's payment as paid</div>
-                <div class="ledger-chat-bubble ledger-chat-in">Marked Ramesh as paid — cleared ₹2,000.</div>
+            <div id="ledgerChat" class="ledger-chat">
+                <div class="ledger-chat-bubble ledger-chat-in">Try: "Ramesh owes me 2000 for tiling work", then "who owes me money"</div>
             </div>
-            <a href="https://wa.me/918123422932" target="_blank" class="format-compare-cta" style="display: inline-block; margin-top: 1.5rem;">Try it on WhatsApp →</a>
+            <div class="ledger-input-row">
+                <input type="text" id="ledgerDemoInput" class="ledger-demo-input" placeholder="Ramesh owes me 2000 for tiling work" />
+                <button id="ledgerDemoSend" class="demo-submit-btn" style="width: auto; margin-top: 0; white-space: nowrap;">Send</button>
+            </div>
+            <div id="ledgerDemoError" class="demo-error" style="display: none;"></div>
         </div>
     </section>
 
@@ -183,5 +182,6 @@
 
     <script src="script.js"></script>
     <script src="format-page.js"></script>
+    <script src="ledger-demo.js"></script>
 </body>
 </html>
