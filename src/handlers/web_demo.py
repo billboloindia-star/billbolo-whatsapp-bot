@@ -212,18 +212,58 @@ class WebDemoHandler:
                 return JSONResponse(status_code=400, content={"error": "Please type a message."})
             if len(text) > 500:
                 return JSONResponse(status_code=400, content={"error": "Message is too long (max 500 characters)."})
-            if not SESSION_ID_RE.match(session_id):
-                session_id = uuid.uuid4().hex
 
-            identifier = f"demoledger#{session_id}"
-            if not self.db.get_user_profile(identifier):
-                self.db.create_user_profile(identifier, business_name="Demo", ttl_days=DEMO_LEDGER_TTL_DAYS)
-
+            identifier, session_id = self._resolve_demo_ledger_identifier(session_id)
             reply = self.ledger.handle(identifier, text, force=True)
             return JSONResponse(status_code=200, content={"reply": reply, "session_id": session_id})
         except Exception as e:
             logger.error(f"Web demo ledger command failed: {e}")
             return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    async def handle_ledger_audio_command(self, request: Request) -> Response:
+        """Same as handle_ledger_command, but for a recorded voice note -
+        works in whatever language the person spoke, same as the real bot."""
+        try:
+            client_ip = self._get_client_ip(request)
+            if not self.db.check_rate_limit(client_ip, limit=MONTHLY_LIMIT_PER_IP):
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": f"You've reached this month's limit of {MONTHLY_LIMIT_PER_IP} free demo "
+                        "tries. Message BillBolo on WhatsApp for unlimited use: "
+                        "wa.me/918123422932"
+                    },
+                )
+
+            form = await request.form()
+            audio_file = form.get("audio")
+            session_id = str(form.get("session_id") or "")
+            if not isinstance(audio_file, UploadFile):
+                return JSONResponse(status_code=400, content={"error": "No audio file received."})
+
+            audio_bytes = await audio_file.read()
+            if not audio_bytes:
+                return JSONResponse(status_code=400, content={"error": "Empty recording. Please try again."})
+            if len(audio_bytes) > MAX_AUDIO_BYTES:
+                return JSONResponse(status_code=400, content={"error": "Recording is too long (max 60 seconds)."})
+
+            mime_type = getattr(audio_file, "content_type", None) or "audio/webm"
+            identifier, session_id = self._resolve_demo_ledger_identifier(session_id)
+            reply = self.ledger.handle_audio(identifier, audio_bytes, mime_type)
+            return JSONResponse(status_code=200, content={"reply": reply, "session_id": session_id})
+        except Exception as e:
+            logger.error(f"Web demo ledger audio command failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    def _resolve_demo_ledger_identifier(self, session_id: str) -> tuple[str, str]:
+        """Validate/generate the session id and ensure a short-lived demo
+        profile exists for it (pending-confirmation storage needs one)."""
+        if not SESSION_ID_RE.match(session_id or ""):
+            session_id = uuid.uuid4().hex
+        identifier = f"demoledger#{session_id}"
+        if not self.db.get_user_profile(identifier):
+            self.db.create_user_profile(identifier, business_name="Demo", ttl_days=DEMO_LEDGER_TTL_DAYS)
+        return identifier, session_id
 
     def _build_success_response(self, extracted) -> JSONResponse:
         """Generate the demo PDF and build the shared success response payload."""

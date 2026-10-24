@@ -182,11 +182,12 @@ class GeminiExtractor:
             return None
 
     def classify_voice_command(
-        self, audio_bytes: bytes, audio_mime_type: str = "audio/webm"
+        self, audio_bytes: bytes, audio_mime_type: str = "audio/webm", known_clients: Optional[list[str]] = None
     ) -> Optional[VoiceCommand]:
-        """Classify a short spoken voice command into one of the app's fixed set of actions."""
+        """Classify a short spoken voice command into one of the app's fixed set of actions.
+        Works in whatever language the person spoke - English, Hindi, Hinglish, etc."""
         try:
-            prompt = self._build_voice_command_prompt()
+            prompt = self._build_voice_command_prompt(known_clients)
             response = self.client.models.generate_content(
                 model=self.MODEL_NAME,
                 contents=[
@@ -197,6 +198,26 @@ class GeminiExtractor:
             return self._parse_voice_command_response(response.text)
         except Exception as e:
             logger.error(f"Failed to classify voice command: {e}")
+            return None
+
+    def transcribe_audio(self, audio_bytes: bytes, audio_mime_type: str = "audio/webm") -> Optional[str]:
+        """Plain transcription of a short recording, translated to English if
+        spoken in another language. Used for a one-word/short-phrase reply
+        (e.g. a name, confirming 'yes'/'cancel') where we just need the text,
+        not full command classification."""
+        try:
+            prompt = (
+                "Transcribe this short audio clip. If spoken in Hindi or another Indian language, "
+                "translate it to English. Respond with ONLY the transcribed/translated text, "
+                "nothing else - no quotes, no explanation."
+            )
+            response = self.client.models.generate_content(
+                model=self.MODEL_NAME,
+                contents=[types.Part.from_bytes(data=audio_bytes, mime_type=audio_mime_type), prompt],
+            )
+            return (response.text or "").strip()
+        except Exception as e:
+            logger.error(f"Failed to transcribe audio: {e}")
             return None
 
     def classify_text_command(self, text: str, known_clients: Optional[list[str]] = None) -> Optional[VoiceCommand]:

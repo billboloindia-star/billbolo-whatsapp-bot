@@ -50,6 +50,23 @@ class LedgerAssistant:
 
         known_clients = [b["client_name"] for b in self.db.get_ledger_balances(identifier)]
         command = self.extractor.classify_text_command(text, known_clients=known_clients)
+        return self._dispatch(identifier, command, force)
+
+    def handle_audio(self, identifier: str, audio_bytes: bytes, audio_mime_type: str) -> str:
+        """Same as handle(), but for a recorded voice note instead of text -
+        always force-mode (used by the dedicated ledger demo's mic input,
+        where every recording is a ledger command by definition). Works in
+        whatever language the person spoke, same as the WhatsApp bot."""
+        pending = self.db.get_pending_ledger_action(identifier)
+        if pending:
+            transcript = self.extractor.transcribe_audio(audio_bytes, audio_mime_type) or ""
+            return self._resolve_pending(identifier, transcript, pending)
+
+        known_clients = [b["client_name"] for b in self.db.get_ledger_balances(identifier)]
+        command = self.extractor.classify_voice_command(audio_bytes, audio_mime_type, known_clients=known_clients)
+        return self._dispatch(identifier, command, force=True)
+
+    def _dispatch(self, identifier: str, command, force: bool) -> Optional[str]:
         if not command or command.action not in ("add_ledger_entry", "mark_ledger_paid", "check_balance"):
             if force:
                 return (
