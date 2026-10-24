@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Item-Level Discounts — BillBolo</title>
+    <meta name="description" content="Give a discount on one item or the whole bill, just by saying so — BillBolo handles the math automatically.">
+    <link rel="canonical" href="https://billbolo.in/item-level-discounts.html">
+
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://billbolo.in/item-level-discounts.html">
+    <meta property="og:title" content="Item-Level Discounts — BillBolo">
+    <meta property="og:description" content="Give a discount on one item or the whole bill, just by saying so — BillBolo handles the math automatically.">
+    <meta property="og:image" content="https://billbolo.in/assets/og-image.png">
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="styles-format.css">
+    <link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg">
+</head>
+<body>
+    <div class="noise-overlay" aria-hidden="true"></div>
+
+    <nav class="navbar">
+        <div class="nav-container">
+            <a href="index.html" class="logo"><img src="assets/logo-full.svg" alt="BillBolo" class="logo-img"></a>
+            <div class="nav-links">
+                <a href="index.html#features">Features</a>
+                <a href="privacy.html">Privacy</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="format-hero">
+        <div class="container">
+            <p class="format-breadcrumb"><a href="index.html">Home</a> &rsaquo; <a href="index.html#features">Features</a> &rsaquo; Item-Level Discounts</p>
+            <div class="icon-badge icon-badge-lg" style="margin: 0 auto 1.5rem;">
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg>
+            </div>
+            <h1>Item-Level Discounts</h1>
+            <p class="format-hero-sub">Give a discount on one item, or the whole bill — just say so. BillBolo does the math and puts it on the PDF.</p>
+            <div class="format-hero-cta">
+                <a href="https://wa.me/918123422932" target="_blank" class="hero-cta-primary-dark">Start on WhatsApp →</a>
+                <a href="index.html#features" class="hero-cta-outline">See all features</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-intro">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">How It Works</p>
+            <h2>No calculator, no second-guessing the math</h2>
+        </div>
+        <p class="format-intro-body reveal">Mention a discount the same way you'd say it out loud — "give 10% off the wardrobe" for one item, or "flat 1000 off the whole thing" for the whole job. BillBolo knows the difference between a per-item discount and a whole-bill one, nets it out correctly before tax, and shows it clearly on the quotation PDF.</p>
+        <p class="format-intro-body reveal" style="transition-delay: 0.05s">No discount mentioned? Nothing changes — the PDF looks exactly as clean as it always has.</p>
+    </section>
+
+    <section class="demo-section">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Try It Right Here</p>
+            <h2>See it work, no signup needed</h2>
+            <p>Describe a job with a discount below — this is a live demo, nothing is saved anywhere.</p>
+        </div>
+        <div class="demo-box reveal">
+            <textarea id="quoteDemoInput" class="demo-textarea" rows="3" placeholder="e.g. Quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft, give 10% off the wardrobe">Quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft, give 10% off the wardrobe</textarea>
+            <p class="demo-lang-note">Type in English, Hindi, or any Indian language — or tap the mic and speak.</p>
+            <div class="demo-btn-row">
+                <button id="quoteDemoMic" class="demo-mic-btn" type="button" title="Speak instead">🎤</button>
+                <button id="quoteDemoSubmit" class="demo-submit-btn">Generate Quotation</button>
+            </div>
+
+            <div id="quoteDemoError" class="demo-error" style="display: none;"></div>
+
+            <div id="quoteDemoResult" class="demo-result" style="display: none;">
+                <div class="demo-result-header">
+                    <span id="quoteDemoClient" class="demo-result-vendor"></span>
+                </div>
+                <div id="quoteDemoItems" class="demo-result-items"></div>
+                <div class="demo-result-total">
+                    <span>Grand Total</span>
+                    <span id="quoteDemoTotal"></span>
+                </div>
+                <a id="quoteDemoPdfLink" class="format-compare-cta" href="#" download="billbolo-sample-quotation.pdf" style="display: inline-block; margin-top: 1rem;">Download Sample PDF</a>
+                <p class="demo-result-note">This is exactly what gets generated automatically when you send this on WhatsApp.</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-compare">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Before You Reach for a Calculator</p>
+            <h2>Should You Work Out Discounts by Hand?</h2>
+            <p>Mental math or a calculator app is a start — but here's where it goes wrong.</p>
+        </div>
+        <div class="compare-grid">
+            <div class="compare-col compare-col-limit reveal">
+                <h3>✕ Working it out yourself</h3>
+                <ul>
+                    <li>Easy to apply a discount to the wrong line by mistake</li>
+                    <li>Forgetting to discount before calculating GST, not after</li>
+                    <li>No clean way to show the discount on a printed quotation</li>
+                    <li>Re-typing the whole bill if you add or change a discount</li>
+                    <li>Mixing up a flat rupee discount with a percentage mid-calculation</li>
+                    <li>Client questions the total with no clear breakdown to show them</li>
+                </ul>
+            </div>
+            <div class="compare-col compare-col-bolo reveal" style="transition-delay: 0.1s">
+                <h3>✓ With BillBolo</h3>
+                <ul>
+                    <li>Say it naturally — per item or for the whole job, BillBolo tells them apart</li>
+                    <li>Discount is always applied before GST, correctly, every time</li>
+                    <li>Shows up as a clear line on the PDF — nothing hidden in the total</li>
+                    <li>Change your mind? Just describe the job again with the new discount</li>
+                    <li>Handles both flat rupee amounts and percentages, whichever you say</li>
+                    <li>A clean, itemized breakdown your client can actually read</li>
+                </ul>
+                <a href="https://wa.me/918123422932" target="_blank" class="format-compare-cta">Try it on WhatsApp →</a>
+            </div>
+        </div>
+    </section>
+
+    <section class="format-faq">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Got Questions?</p>
+            <h2>Frequently Asked Questions</h2>
+        </div>
+        <div class="faq-list">
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">How do I give a discount on just one item?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Mention it right after that item — "wardrobe 80 sq ft at 1600, give 10% off that" or "500 off the cabinet." BillBolo applies it to that line only.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">How do I give a discount on the whole quotation?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Mention it for the job as a whole — "give him 10% off the total" or "flat 1000 off everything." BillBolo keeps this separate from any per-item discounts.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Is the discount applied before or after GST?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Before. The discount reduces the subtotal first, and GST is calculated on what's left — the standard way real quotations handle it.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Can I use a percentage and a flat amount together?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes, just not on the exact same line or the exact same total — you can give one item a percentage off and the whole bill a flat discount (or vice versa) in the same quotation.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">Does the discount show up on the PDF?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Yes — a per-item discount shows as its own column next to that line, and a whole-bill discount shows as its own line above the subtotal, so your client can see exactly what was taken off.</span>
+            </button>
+            <button class="faq-item reveal" aria-expanded="false">
+                <span class="faq-q">What if I don't mention a discount at all?</span>
+                <span class="faq-icon">+</span>
+                <span class="faq-a">Nothing changes — the quotation looks exactly as it always does, with no discount column or line cluttering it up.</span>
+            </button>
+        </div>
+    </section>
+
+    <section class="cta-section reveal">
+        <h2>Try it yourself, right now</h2>
+        <p>Message BillBolo on WhatsApp — no signup, no download, just send a message.</p>
+        <a href="https://wa.me/918123422932" target="_blank" class="cta-button">Message BillBolo →</a>
+    </section>
+
+    <footer class="footer">
+        <div class="footer-content">
+            <div class="footer-col">
+                <h4>BillBolo</h4>
+                <p>Virtual Munshi inside WhatsApp</p>
+                <p><a href="index.html#about">About Us</a></p>
+                <p><a href="index.html#features">Services</a></p>
+                <p><a href="https://forms.gle/3fGvq1kHYJ5VjZ4A7" target="_blank" rel="noopener">💬 Help us build this — 2 min survey</a></p>
+            </div>
+            <div class="footer-col">
+                <p><a href="privacy.html">Privacy Policy</a></p>
+                <p><a href="terms.html">Terms &amp; Conditions</a></p>
+                <p><a href="refund.html">Refund Policy</a></p>
+                <p><a href="cancellation.html">Cancellation Policy</a></p>
+            </div>
+            <div class="footer-col">
+                <p><strong>Contact:</strong></p>
+                <p><a href="mailto:billbolo.india@billbolo.in">billbolo.india@billbolo.in</a></p>
+                <p><a href="https://wa.me/918123422932" target="_blank">WhatsApp: +91 81234 22932</a></p>
+                <p>&copy; 2026 BillBolo</p>
+            </div>
+        </div>
+        <div class="footer-legal-card footer-made-in-india">
+            <p>Made with ❤️ in India</p>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script src="format-page.js"></script>
+    <script src="quotation-demo.js"></script>
+</body>
+</html>
