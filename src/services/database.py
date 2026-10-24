@@ -110,6 +110,30 @@ class DynamoDBClient:
             logger.error(f"Failed to upgrade to Pro: {e}")
             return False
 
+    def update_business_name(self, phone_number: str, business_name: str) -> bool:
+        """Set the business name on a pending (placeholder) user profile."""
+        try:
+            profile = self.get_user_profile(phone_number)
+            if not profile:
+                return False
+
+            self.table.update_item(
+                Key={
+                    "phone_number": profile["phone_number"],
+                    "created_at": profile["created_at"],
+                },
+                UpdateExpression="SET business_name = :name, updated_at = :now",
+                ExpressionAttributeValues={
+                    ":name": business_name,
+                    ":now": datetime.utcnow().isoformat(),
+                },
+            )
+            logger.info(f"Business name set for {phone_number}")
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to update business name: {e}")
+            return False
+
     def save_session_draft(
         self,
         phone_number: str,

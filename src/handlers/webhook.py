@@ -90,31 +90,58 @@ class WebhookHandler:
         user = self.db.get_user_profile(phone_number)
 
         if not user:
-            # New user - ask for business name
+            # First contact - create a pending profile and ask for business name.
+            # The *next* text message from this number is treated as the reply.
+            self.db.create_user_profile(phone_number, business_name="")
             await self._send_reply(
                 phone_number,
                 f"Hi! I'm {settings.bot_name}. What's your business name?",
             )
-            # Will be created when user replies with business name
+        elif not user.get("business_name"):
+            # This message is the reply to "what's your business name?"
+            self.db.update_business_name(phone_number, text.strip())
+            await self._send_reply(
+                phone_number,
+                f"Great, {text.strip()}! Send me a voice note or bill photo to get started.",
+            )
         else:
             # Existing user
             if text.lower().startswith("quote:") or text.lower().startswith("q:"):
                 # Edit mode: "Change wardrobe rate to 1,700"
                 await self._handle_edit_request(phone_number, text)
             else:
-                await self._send_reply(
+                await self._generate_quotation(
                     phone_number,
-                    "Send a voice note or bill image to generate a quotation.",
+                    user,
+                    lambda: self.extractor.extract_from_text(text),
+                    not_understood_message=(
+                        "I couldn't find item names and rates in that message. "
+                        "Try something like 'quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft', "
+                        "or send a voice note or bill image instead."
+                    ),
                 )
 
     async def _handle_audio_message(self, phone_number: str, media_id: str) -> None:
         """Handle audio (voice note) message."""
-        # Create user if doesn't exist
         user = self.db.get_user_profile(phone_number)
         if not user:
             self.db.create_user_profile(phone_number, "Unknown Business")
             user = self.db.get_user_profile(phone_number)
 
+        audio_bytes = self.whatsapp.download_media(media_id)
+        if not audio_bytes:
+            await self._send_reply(phone_number, "Failed to download audio. Please try again.")
+            return
+
+        await self._generate_quotation(
+            phone_number,
+            user,
+            lambda: self.extractor.extract_from_audio(audio_bytes),
+            not_understood_message="Failed to parse the voice note. Please speak clearly with item names and rates.",
+        )
+
+    async def _generate_quotation(self, phone_number: str, user: dict, extract_fn, not_understood_message: str) -> None:
+        """Shared quotation generation flow: credit check, extract, PDF, send, log, bill."""
         # Check credits
         if not user.get("is_pro") and user.get("credits_used", 0) >= settings.free_credits:
             payment_link = self.cashfree.create_payment_link(
@@ -128,22 +155,11 @@ class WebhookHandler:
                 )
             return
 
-        # Download and process audio
-        audio_bytes = self.whatsapp.download_media(media_id)
-        if not audio_bytes:
-            await self._send_reply(phone_number, "Failed to download audio. Please try again.")
+        extracted = extract_fn()
+        if not extracted or not extracted.items:
+            await self._send_reply(phone_number, not_understood_message)
             return
 
-        # Extract data from audio
-        extracted = self.extractor.extract_from_audio(audio_bytes)
-        if not extracted:
-            await self._send_reply(
-                phone_number,
-                "Failed to parse the voice note. Please speak clearly with item names and rates.",
-            )
-            return
-
-        # Generate PDF
         pdf_bytes = self.pdf_gen.generate_quotation(
             extracted,
             {"name": user.get("business_name", "Business")},
@@ -153,7 +169,6 @@ class WebhookHandler:
             await self._send_reply(phone_number, "Failed to generate PDF. Please try again.")
             return
 
-        # Save to S3 and send back
         pdf_url = await self._save_pdf_to_s3(pdf_bytes, phone_number)
         await self.whatsapp.send_document(
             phone_number,
@@ -161,11 +176,9 @@ class WebhookHandler:
             caption=f"Quotation for {extracted.client_name or 'your client'}",
         )
 
-        # Log to user's sheet
         if user.get("sheet_id"):
             self.sheets.append_quotation_to_sheet(user["sheet_id"], extracted, phone_number)
 
-        # Increment credits
         self.db.increment_credits_used(phone_number)
 
     async def _handle_image_message(self, phone_number: str, media_id: str) -> None:
@@ -199,10 +212,33 @@ class WebhookHandler:
         if user.get("sheet_id"):
             self.sheets.append_expense_to_sheet(user["sheet_id"], extracted, phone_number)
 
-        await self._send_reply(
-            phone_number,
-            f"Expense logged: ₹{extracted.grand_total:,.2f} - {extracted.notes or 'No description'}",
-        )
+        if extracted.items:
+            lines = []
+            for item in extracted.items:
+                if not item.item_name:
+                    continue
+                line = f"- {item.item_name}: ₹{item.display_amount():,.2f}"
+                breakdown = []
+                if item.discount:
+                    breakdown.append(f"discount ₹{item.discount:,.2f}")
+                if item.taxable_value is not None:
+                    breakdown.append(f"taxable ₹{item.taxable_value:,.2f}")
+                if item.sgst:
+                    breakdown.append(f"SGST ₹{item.sgst:,.2f}")
+                if item.cgst:
+                    breakdown.append(f"CGST ₹{item.cgst:,.2f}")
+                if item.igst:
+                    breakdown.append(f"IGST ₹{item.igst:,.2f}")
+                if breakdown:
+                    line += f"\n  ({', '.join(breakdown)})"
+                lines.append(line)
+            itemized = "\n".join(lines)
+            reply = f"Expense logged: ₹{extracted.grand_total:,.2f}\n{itemized}"
+        else:
+            description = extracted.seller_name or extracted.notes or "No description"
+            reply = f"Expense logged: ₹{extracted.grand_total:,.2f} - {description}"
+
+        await self._send_reply(phone_number, reply)
 
         self.db.increment_credits_used(phone_number)
 

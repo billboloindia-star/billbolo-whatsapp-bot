@@ -65,11 +65,22 @@ class LineItem(BaseModel):
     unit: str = Field(default="qty", description="Unit of measurement (sq ft, hrs, etc)")
     amount: Optional[float] = Field(None, description="Total amount (auto-calculated)")
     hsn_code: Optional[str] = Field(None, description="HSN/SAC code, if printed on the bill")
+    discount: Optional[float] = Field(None, description="Discount/coupon applied to this line, if printed on a bill")
+    taxable_value: Optional[float] = Field(None, description="Value this line's tax is calculated on, if printed on a bill")
+    sgst: Optional[float] = Field(None, description="SGST amount for this line, if printed on a bill")
+    cgst: Optional[float] = Field(None, description="CGST amount for this line, if printed on a bill")
+    igst: Optional[float] = Field(None, description="IGST amount for this line (interstate), if printed on a bill")
+    line_total: Optional[float] = Field(None, description="Final amount for this line as printed on a bill, after discount and tax")
 
     def calculate_amount(self) -> float:
         """Calculate total amount for this item."""
         self.amount = self.quantity * self.rate
         return self.amount
+
+    def display_amount(self) -> float:
+        """Best amount to show for this line: the printed line total if we have
+        one (accounts for discount/tax), otherwise the plain quantity*rate."""
+        return self.line_total if self.line_total is not None else (self.amount or 0)
 
 
 class ExtractedData(BaseModel):
@@ -235,7 +246,13 @@ JSON Schema:
             "rate": 1600.00,
             "unit": "sq ft|hrs|pcs|kg|etc",
             "amount": null,
-            "hsn_code": "HSN or SAC code printed next to this item on the bill (or null if not present)"
+            "hsn_code": "HSN or SAC code printed next to this item on the bill (or null if not present)",
+            "discount": "Discount/coupon amount printed on this line (or null if not present)",
+            "taxable_value": "Taxable Value printed on this line (or null if not present)",
+            "sgst": "SGST amount printed on this line (or null if not present)",
+            "cgst": "CGST amount printed on this line (or null if not present)",
+            "igst": "IGST amount printed on this line, for interstate bills (or null if not present)",
+            "line_total": "This line's final Total column amount exactly as printed on the bill (or null if not present)"
         }}
     ],
     "notes": "Payment terms, delivery details, etc (or null)",
@@ -257,11 +274,13 @@ Rules:
 1. Extract EXACT quantities and rates mentioned (do not round)
 2. If rate is in thousands (e.g., "1600 per sq ft"), use exact value
 3. If items lack rates, set rate to 0 and mark for manual lookup
-4. Calculate totals: total_before_gst = SUM(quantity * rate), gst_amount = total_before_gst * (gst_percentage/100), grand_total = total_before_gst + gst_amount
+4. For a NEW quotation (voice/text describing work to be quoted), leave total_before_gst, gst_amount and grand_total as null - they will be calculated from the items automatically.
+   For a bill/receipt/invoice IMAGE that already shows a printed final total (e.g. "Grand Total", "Total", "Amount Payable"), capture that printed amount EXACTLY as grand_total - do not recalculate it from the line items, since bills often include discounts, fees or tax treatments not fully captured in the item list.
 5. Detect language and set language_detected field
 6. For voice notes: user may say "Quotation for Sharma Ji, 80 sq ft wardrobe at 1,600 per sq ft" — parse exactly
 7. If a bill/receipt shows an HSN or SAC code next to an item (common on GST invoices), capture it exactly as printed in that item's hsn_code field. Leave it null if the bill has no HSN/SAC codes.
 8. If a bill/receipt shows the seller's business name, GSTIN, or address (usually printed at the top as the "Sold By" / letterhead), capture them in seller_name, seller_gstin, seller_address. Capture billing_address and shipping_address separately if both are printed (common on e-commerce invoices) - leave shipping_address null if only one address is shown. Capture order_date/invoice_date exactly as printed in order_date. Leave any of these null if not present on the bill - do not guess or invent them.
+9. If a bill/receipt has a per-line breakdown (Discount, Taxable Value, SGST, CGST or IGST, Total columns), capture each of those exactly as printed in that item's discount, taxable_value, sgst, cgst, igst and line_total fields. These are per-line figures, not the bill's overall totals. The line_total values across all items, summed together, should add up to (or very closely match) the bill's overall grand_total - if your captured figures don't reconcile, re-check the columns before finalizing. Leave any of these fields null if the bill doesn't show that level of detail.
 
 Return ONLY the JSON object, no other text."""
 
@@ -279,13 +298,22 @@ Return ONLY the JSON object, no other text."""
             data_dict = json.loads(json_text)
             extracted = ExtractedData(**data_dict)
 
-            # Calculate totals
             for item in extracted.items:
                 item.calculate_amount()
 
-            extracted.total_before_gst = sum(item.amount or 0 for item in extracted.items)
-            extracted.gst_amount = extracted.total_before_gst * (extracted.gst_percentage / 100)
-            extracted.grand_total = extracted.total_before_gst + extracted.gst_amount
+            if extracted.data_type == "quotation":
+                # New work being quoted - no existing total to read, so compute it.
+                extracted.total_before_gst = sum(item.amount or 0 for item in extracted.items)
+                extracted.gst_amount = extracted.total_before_gst * (extracted.gst_percentage / 100)
+                extracted.grand_total = extracted.total_before_gst + extracted.gst_amount
+            elif extracted.grand_total is None:
+                # Invoice/expense extracted from an existing bill - trust the printed
+                # total if we got one; only fall back to computing it if we didn't,
+                # since re-deriving it from items double-applies GST that's often
+                # already baked into the extracted rate.
+                extracted.total_before_gst = sum(item.amount or 0 for item in extracted.items)
+                extracted.gst_amount = extracted.total_before_gst * (extracted.gst_percentage / 100)
+                extracted.grand_total = extracted.total_before_gst + extracted.gst_amount
 
             logger.info(f"Successfully extracted data: {extracted.data_type}")
             return extracted
