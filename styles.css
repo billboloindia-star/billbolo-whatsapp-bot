@@ -787,12 +787,16 @@ body.lang-telugu h3 {
 }
 
 .feature-card {
+    display: block;
     padding: 2.25rem;
     background: white;
     border-radius: 18px;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     border: 1px solid var(--border-color);
     box-shadow: var(--shadow-md);
+    text-decoration: none;
+    color: inherit;
+    cursor: pointer;
 }
 
 .feature-card:hover {
