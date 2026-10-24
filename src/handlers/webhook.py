@@ -106,7 +106,10 @@ class WebhookHandler:
             )
         else:
             # Existing user
-            if text.lower().startswith("quote:") or text.lower().startswith("q:"):
+            pending = self.db.get_pending_ledger_action(phone_number)
+            if pending:
+                await self._resolve_pending_ledger_action(phone_number, text, pending)
+            elif text.lower().startswith("quote:") or text.lower().startswith("q:"):
                 # Edit mode: "Change wardrobe rate to 1,700"
                 await self._handle_edit_request(phone_number, text)
             elif self._looks_like_ledger_command(text) and await self._try_handle_ledger_command(phone_number, text):
@@ -138,9 +141,12 @@ class WebhookHandler:
         """If this text message is a ledger command (add entry/mark paid/check
         balance), handle it and return True. Otherwise return False so the
         caller falls through to normal quotation generation."""
-        command = self.extractor.classify_text_command(text)
+        known_clients = [b["client_name"] for b in self.db.get_ledger_balances(phone_number)]
+        command = self.extractor.classify_text_command(text, known_clients=known_clients)
         if not command or command.action not in ("add_ledger_entry", "mark_ledger_paid", "check_balance"):
             return False
+
+        candidates = list(dict.fromkeys(command.ambiguous_candidates or []))
 
         if command.action == "add_ledger_entry":
             if not command.client_name or not command.amount:
@@ -150,39 +156,41 @@ class WebhookHandler:
                     "'Ramesh owes me 2000 for tiling work'.",
                 )
                 return True
-            self.db.create_ledger_entry(
-                phone_number,
-                client_name=command.client_name,
-                amount=command.amount,
-                description=command.ledger_description,
-                due_date=command.due_date,
-            )
-            balances = self.db.get_ledger_balances(phone_number, client_name_query=command.client_name)
-            own_bucket = next(
-                (b for b in balances if b["client_name"].lower() == command.client_name.lower()), None
-            )
-            total = own_bucket["total"] if own_bucket else command.amount
-            entry_count = own_bucket["entry_count"] if own_bucket else 1
-            await self._send_reply(
-                phone_number,
-                f"Added: {command.client_name} owes ₹{total:,.0f}"
-                + (f" (total across {entry_count} entries)" if entry_count > 1 else ""),
-            )
+            if len(candidates) >= 2:
+                self.db.set_pending_ledger_action(
+                    phone_number,
+                    {
+                        "action": "add_ledger_entry",
+                        "candidates": candidates,
+                        "amount": command.amount,
+                        "description": command.ledger_description,
+                        "due_date": command.due_date,
+                    },
+                )
+                await self._send_reply(
+                    phone_number,
+                    f"Did you mean {self._format_candidates(candidates)}, or someone new? "
+                    "Reply with the name to confirm.",
+                )
+                return True
+            await self._add_ledger_entry_and_reply(phone_number, command.client_name, command.amount, command.ledger_description, command.due_date)
             return True
 
         if command.action == "mark_ledger_paid":
             if not command.client_name_query:
                 await self._send_reply(phone_number, "Who should I mark as paid?")
                 return True
-            paid_entries = self.db.mark_ledger_entries_paid(phone_number, command.client_name_query)
-            if not paid_entries:
-                await self._send_reply(phone_number, f"No pending balance found for {command.client_name_query}.")
+            if len(candidates) >= 2:
+                self.db.set_pending_ledger_action(
+                    phone_number,
+                    {"action": "mark_ledger_paid", "candidates": candidates},
+                )
+                await self._send_reply(
+                    phone_number,
+                    f"Did you mean {self._format_candidates(candidates)}? Reply with the name to confirm.",
+                )
                 return True
-            total_cleared = sum(e["amount"] for e in paid_entries)
-            await self._send_reply(
-                phone_number,
-                f"Marked {paid_entries[0]['client_name']} as paid — cleared ₹{total_cleared:,.0f}.",
-            )
+            await self._mark_ledger_paid_and_reply(phone_number, command.client_name_query)
             return True
 
         if command.action == "check_balance":
@@ -219,6 +227,65 @@ class WebhookHandler:
             return True
 
         return False
+
+    def _format_candidates(self, candidates: list[str]) -> str:
+        if len(candidates) == 2:
+            return f"{candidates[0]} or {candidates[1]}"
+        return ", ".join(candidates[:-1]) + f", or {candidates[-1]}"
+
+    async def _add_ledger_entry_and_reply(
+        self, phone_number: str, client_name: str, amount: float, description: Optional[str], due_date: Optional[str]
+    ) -> None:
+        self.db.create_ledger_entry(
+            phone_number, client_name=client_name, amount=amount, description=description, due_date=due_date
+        )
+        balances = self.db.get_ledger_balances(phone_number, client_name_query=client_name)
+        own_bucket = next((b for b in balances if b["client_name"].lower() == client_name.lower()), None)
+        total = own_bucket["total"] if own_bucket else amount
+        entry_count = own_bucket["entry_count"] if own_bucket else 1
+        await self._send_reply(
+            phone_number,
+            f"Added: {client_name} owes ₹{total:,.0f}"
+            + (f" (total across {entry_count} entries)" if entry_count > 1 else ""),
+        )
+
+    async def _mark_ledger_paid_and_reply(self, phone_number: str, client_name: str) -> None:
+        paid_entries = self.db.mark_ledger_entries_paid(phone_number, client_name)
+        if not paid_entries:
+            await self._send_reply(phone_number, f"No pending balance found for {client_name}.")
+            return
+        total_cleared = sum(e["amount"] for e in paid_entries)
+        await self._send_reply(
+            phone_number,
+            f"Marked {paid_entries[0]['client_name']} as paid — cleared ₹{total_cleared:,.0f}.",
+        )
+
+    async def _resolve_pending_ledger_action(self, phone_number: str, text: str, pending: dict) -> None:
+        """Handle a reply to an earlier ambiguous-name confirmation question."""
+        reply_lower = text.strip().lower()
+        candidates = pending.get("candidates", [])
+
+        if reply_lower in ("cancel", "no", "neither", "none"):
+            self.db.clear_pending_ledger_action(phone_number)
+            await self._send_reply(phone_number, "Cancelled.")
+            return
+
+        resolved = next((c for c in candidates if c.lower() == reply_lower), None)
+        if not resolved:
+            resolved = next((c for c in candidates if reply_lower in c.lower() or c.lower() in reply_lower), None)
+        if not resolved and reply_lower not in [c.lower() for c in candidates]:
+            # Not a recognizable reply to the candidates - treat it as the name
+            # of a genuinely new/different client instead of giving up.
+            resolved = text.strip()
+
+        self.db.clear_pending_ledger_action(phone_number)
+
+        if pending.get("action") == "add_ledger_entry":
+            await self._add_ledger_entry_and_reply(
+                phone_number, resolved, pending.get("amount"), pending.get("description"), pending.get("due_date")
+            )
+        elif pending.get("action") == "mark_ledger_paid":
+            await self._mark_ledger_paid_and_reply(phone_number, resolved)
 
     async def _handle_audio_message(self, phone_number: str, media_id: str) -> None:
         """Handle audio (voice note) message."""

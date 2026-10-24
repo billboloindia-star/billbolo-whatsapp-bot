@@ -164,19 +164,18 @@ class DynamoDBClient:
             logger.error(f"Failed to list ledger entries: {e}")
             return []
 
-    def mark_ledger_entries_paid(self, phone_number: str, client_name_query: str) -> list[dict]:
+    def mark_ledger_entries_paid(self, phone_number: str, client_name: str) -> list[dict]:
         """Mark all unpaid entries for a client as paid (clears their whole
         balance, not just the latest entry - matches how 'mark X as paid'
-        is usually meant). Matches by case-insensitive substring in either
-        direction, so 'Ramesh' matches a saved 'Ramesh Kumar' and vice versa.
+        is usually meant). Matches by exact client name (case-insensitive)
+        only - this is a destructive, money-moving action, so any fuzzy
+        disambiguation between similarly-named clients (e.g. 'Ramesh' vs
+        'Ramesh Sisodia') must happen upstream, with user confirmation,
+        before this is called with the resolved exact name.
         Returns the entries that were marked paid."""
-        query_lower = client_name_query.strip().lower()
+        query_lower = client_name.strip().lower()
         unpaid = self.list_ledger_entries(phone_number, status="owed")
-        matches = [
-            e
-            for e in unpaid
-            if query_lower in e.get("client_name_lower", "") or e.get("client_name_lower", "") in query_lower
-        ]
+        matches = [e for e in unpaid if e.get("client_name_lower", "") == query_lower]
         paid_now = []
         for entry in matches:
             try:
@@ -213,6 +212,61 @@ class DynamoDBClient:
             bucket["entry_count"] += 1
 
         return sorted(balances.values(), key=lambda b: b["total"], reverse=True)
+
+    PENDING_LEDGER_ACTION_TTL_MINUTES = 10
+
+    def set_pending_ledger_action(self, phone_number: str, action: dict) -> bool:
+        """Stash a ledger action awaiting user confirmation (e.g. an ambiguous
+        client name match) on the user's own profile item, so the next text
+        message from them can be checked as a reply to it."""
+        try:
+            profile = self.get_user_profile(phone_number)
+            if not profile:
+                return False
+            payload = dict(action)
+            payload["created_at_ts"] = datetime.utcnow().isoformat()
+            self.table.update_item(
+                Key={"phone_number": profile["phone_number"], "created_at": profile["created_at"]},
+                UpdateExpression="SET pending_ledger_action = :a",
+                ExpressionAttributeValues={":a": _to_decimal(payload)},
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to set pending ledger action: {e}")
+            return False
+
+    def get_pending_ledger_action(self, phone_number: str) -> Optional[dict]:
+        """Return the pending ledger action for this user, if any and not
+        expired (so an old, abandoned confirmation can't hijack an unrelated
+        message days later)."""
+        profile = self.get_user_profile(phone_number)
+        if not profile:
+            return None
+        action = profile.get("pending_ledger_action")
+        if not action:
+            return None
+        try:
+            created = datetime.fromisoformat(action["created_at_ts"])
+        except (KeyError, ValueError):
+            return None
+        if datetime.utcnow() - created > timedelta(minutes=self.PENDING_LEDGER_ACTION_TTL_MINUTES):
+            return None
+        return action
+
+    def clear_pending_ledger_action(self, phone_number: str) -> bool:
+        """Remove any pending ledger action on this user's profile."""
+        try:
+            profile = self.get_user_profile(phone_number)
+            if not profile:
+                return False
+            self.table.update_item(
+                Key={"phone_number": profile["phone_number"], "created_at": profile["created_at"]},
+                UpdateExpression="REMOVE pending_ledger_action",
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to clear pending ledger action: {e}")
+            return False
 
     def get_user_profile(self, phone_number: str) -> Optional[dict]:
         """Retrieve user profile from DynamoDB."""

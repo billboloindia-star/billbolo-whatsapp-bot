@@ -70,6 +70,13 @@ class VoiceCommand(BaseModel):
     client_name_query: Optional[str] = Field(
         None, description="Name to search for among unpaid ledger entries (null in check_balance means 'everyone')"
     )
+    # add_ledger_entry, mark_ledger_paid - only set when a list of known clients was given as context
+    ambiguous_candidates: Optional[list[str]] = Field(
+        None,
+        description="If the named client could plausibly refer to 2+ of the known clients given as context "
+        "(or to one of them vs. a new different person), list those candidate names here instead of "
+        "guessing - the app will ask the user to confirm which one they meant",
+    )
 
 
 class LineItem(BaseModel):
@@ -192,12 +199,17 @@ class GeminiExtractor:
             logger.error(f"Failed to classify voice command: {e}")
             return None
 
-    def classify_text_command(self, text: str) -> Optional[VoiceCommand]:
+    def classify_text_command(self, text: str, known_clients: Optional[list[str]] = None) -> Optional[VoiceCommand]:
         """Classify a short text message into one of the app's fixed set of actions.
         Same classifier/prompt as classify_voice_command, just text input - used for
-        WhatsApp ledger commands ('Ramesh owes me 2000', 'mark Ramesh as paid')."""
+        WhatsApp ledger commands ('Ramesh owes me 2000', 'mark Ramesh as paid').
+
+        known_clients, if given, lets the model resolve a name against the
+        business's actual existing clients (e.g. matching 'Ramesh' to an
+        existing 'Ramesh Sisodia') or flag it as ambiguous between two of
+        them, rather than the app doing blind substring matching."""
         try:
-            prompt = self._build_voice_command_prompt()
+            prompt = self._build_voice_command_prompt(known_clients)
             response = self.client.models.generate_content(
                 model=self.MODEL_NAME,
                 contents=[text, prompt],
@@ -207,8 +219,21 @@ class GeminiExtractor:
             logger.error(f"Failed to classify text command: {e}")
             return None
 
-    def _build_voice_command_prompt(self) -> str:
-        return """You are a voice command classifier for BillBolo, a business app for Indian contractors and freelancers. The user may speak in English, Hindi, Bengali, Tamil, Telugu, Marathi, Hinglish, or a mix of English and any Indian language.
+    def _build_voice_command_prompt(self, known_clients: Optional[list[str]] = None) -> str:
+        known_clients_block = ""
+        if known_clients:
+            names = ", ".join(sorted(set(known_clients)))
+            known_clients_block = f"""
+
+This business already has these clients on record: {names}.
+Follow these rules EXACTLY when the command names a client - getting this wrong means money gets attributed to the wrong person, so be conservative:
+1. If the name in the command is an EXACT match (case-insensitive) to one known client, use that known client's name as written in the list.
+2. If the name in the command is a strict SHORTER/PARTIAL form of exactly ONE known client (e.g. "Ramesh" is the first word of "Ramesh Sisodia" and no other known client starts with "Ramesh"), match it to that one known client.
+3. If the name in the command is a strict SHORTER/PARTIAL form of TWO OR MORE known clients (e.g. "Ramesh" when both "Ramesh Sisodia" and "Ramesh Verma" exist), do NOT guess - set ambiguous_candidates to those matching known-client names, and still put your best single guess in client_name/client_name_query as a fallback.
+4. If the name in the command is a COMPLETE, SPECIFIC name (e.g. "Ramesh Verma") that does not exactly match any known client, treat it as a genuinely different, new person - even if a known client shares part of the name (e.g. "Ramesh Sisodia" also starting with "Ramesh"). Do NOT silently substitute a known client's name for a different specific name the user actually said. Use the name exactly as the user said it, and leave ambiguous_candidates null.
+5. Never invent or assume a match that changes what the user explicitly said unless rule 2 or 3 applies."""
+
+        return """You are a voice command classifier for BillBolo, a business app for Indian contractors and freelancers. The user may speak in English, Hindi, Bengali, Tamil, Telugu, Marathi, Hinglish, or a mix of English and any Indian language.""" + known_clients_block + """
 
 Classify this command into EXACTLY ONE of these 8 actions. Respond with ONLY a valid JSON object (no markdown, no extra text).
 
@@ -227,10 +252,10 @@ Actions and their JSON shape:
    {"action": "add_client", "client_name": "...", "client_phone": "... or null", "confirmation_text": "..."}
 
 5. add_ledger_entry - user wants to record that someone owes them money. Example: "add to ledger, Sharma owes me 2000 for tiling, due next Friday"
-   {"action": "add_ledger_entry", "client_name": "...", "amount": 2000, "ledger_description": "...", "due_date": "YYYY-MM-DD or null if not mentioned", "confirmation_text": "..."}
+   {"action": "add_ledger_entry", "client_name": "...", "amount": 2000, "ledger_description": "...", "due_date": "YYYY-MM-DD or null if not mentioned", "ambiguous_candidates": null, "confirmation_text": "..."}
 
 6. mark_ledger_paid - user wants to mark an existing debt as paid. Example: "mark Sharma's payment as paid"
-   {"action": "mark_ledger_paid", "client_name_query": "Sharma", "confirmation_text": "..."}
+   {"action": "mark_ledger_paid", "client_name_query": "Sharma", "ambiguous_candidates": null, "confirmation_text": "..."}
 
 7. check_balance - user wants to know who owes them money, or how much a specific client owes. Example: "who owes me money", "what does Ramesh owe me", "total udhaar", "Suresh ka balance kitna hai"
    {"action": "check_balance", "client_name_query": "<name mentioned, or null if asking about everyone>", "confirmation_text": "..."}
