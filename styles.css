@@ -1155,6 +1155,13 @@ body.lang-telugu h3 {
     border-radius: 16px;
 }
 
+.footer-made-in-india {
+    text-align: center;
+    padding: 1.25rem 2.5rem;
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.6);
+}
+
 .footer-legal-label {
     font-size: 0.75rem;
     font-weight: 700;
