@@ -2,8 +2,10 @@
 
 import json
 import logging
+import uuid
 from datetime import datetime, timedelta
-from typing import Optional
+from decimal import Decimal
+from typing import Any, Optional
 
 import boto3
 from botocore.exceptions import BotoCoreError, ClientError
@@ -11,6 +13,18 @@ from botocore.exceptions import BotoCoreError, ClientError
 from src.config import settings
 
 logger = logging.getLogger(__name__)
+
+
+def _to_decimal(value: Any) -> Any:
+    """Recursively convert floats to Decimal - DynamoDB's put_item rejects
+    native Python float outright."""
+    if isinstance(value, float):
+        return Decimal(str(value))
+    if isinstance(value, dict):
+        return {k: _to_decimal(v) for k, v in value.items()}
+    if isinstance(value, list):
+        return [_to_decimal(v) for v in value]
+    return value
 
 
 class DynamoDBClient:
@@ -46,6 +60,62 @@ class DynamoDBClient:
         except (BotoCoreError, ClientError) as e:
             logger.error(f"Failed to create user profile: {e}")
             return False
+
+    def create_expense(
+        self,
+        phone_number: str,
+        vendor: Optional[str],
+        amount: float,
+        notes: Optional[str] = None,
+        items: Optional[list[dict]] = None,
+        seller_name: Optional[str] = None,
+        seller_gstin: Optional[str] = None,
+        seller_address: Optional[str] = None,
+        billing_address: Optional[str] = None,
+        shipping_address: Optional[str] = None,
+        order_date: Optional[str] = None,
+        category: Optional[str] = None,
+    ) -> bool:
+        """Persist an expense logged via WhatsApp. Stored under a distinct
+        partition key (expense#<phone>) so it doesn't collide with the
+        user's own profile item, which uses the bare phone_number."""
+        try:
+            sort_key = f"{datetime.utcnow().isoformat()}#{uuid.uuid4().hex[:8]}"
+            self.table.put_item(
+                Item={
+                    "phone_number": f"expense#{phone_number}",
+                    "created_at": sort_key,
+                    "vendor": vendor or "",
+                    "amount": _to_decimal(amount),
+                    "notes": notes or "",
+                    "items": _to_decimal(items or []),
+                    "seller_name": seller_name or "",
+                    "seller_gstin": seller_gstin or "",
+                    "seller_address": seller_address or "",
+                    "billing_address": billing_address or "",
+                    "shipping_address": shipping_address or "",
+                    "order_date": order_date or "",
+                    "category": category or "Other",
+                    "expires_at": int((datetime.utcnow() + timedelta(days=730)).timestamp()),
+                }
+            )
+            return True
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to create expense: {e}")
+            return False
+
+    def list_expenses(self, phone_number: str) -> list[dict]:
+        """List all expenses logged via WhatsApp for this phone number, newest first."""
+        try:
+            response = self.table.query(
+                KeyConditionExpression="phone_number = :pn",
+                ExpressionAttributeValues={":pn": f"expense#{phone_number}"},
+                ScanIndexForward=False,
+            )
+            return response.get("Items", [])
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to list expenses: {e}")
+            return []
 
     def get_user_profile(self, phone_number: str) -> Optional[dict]:
         """Retrieve user profile from DynamoDB."""

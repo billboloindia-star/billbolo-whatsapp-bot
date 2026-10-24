@@ -9,7 +9,7 @@ from fastapi import Request, Response
 from fastapi.responses import JSONResponse
 from starlette.datastructures import UploadFile
 
-from src.services.ai_extractor import GeminiExtractor
+from src.services.ai_extractor import GeminiExtractor, EXPENSE_CATEGORIES
 from src.services.app_db import AppDBClient
 from src.services.auth import create_jwt, hash_password, is_admin_phone, verify_password
 from src.services.pdf_generator import PDFGenerator
@@ -313,6 +313,7 @@ class ExpensesHandler:
                 billing_address=extracted.billing_address,
                 shipping_address=extracted.shipping_address,
                 order_date=extracted.order_date,
+                category=extracted.expense_category,
             )
             if not expense_id:
                 return JSONResponse(status_code=500, content={"error": "Failed to save expense."})
@@ -331,6 +332,7 @@ class ExpensesHandler:
                     "billing_address": extracted.billing_address,
                     "shipping_address": extracted.shipping_address,
                     "order_date": extracted.order_date,
+                    "category": extracted.expense_category or "Other",
                 },
             )
         except Exception as e:
@@ -343,6 +345,9 @@ class ExpensesHandler:
             vendor = (body.get("vendor") or "").strip()
             amount = body.get("amount")
             notes = (body.get("notes") or "").strip()
+            category = (body.get("category") or "").strip() or None
+            if category and category not in EXPENSE_CATEGORIES:
+                return JSONResponse(status_code=400, content={"error": "Invalid category."})
 
             try:
                 amount = float(amount)
@@ -351,7 +356,7 @@ class ExpensesHandler:
             if amount <= 0:
                 return JSONResponse(status_code=400, content={"error": "Amount must be greater than zero."})
 
-            ok = self.db.update_expense(user_id, expense_id, vendor, amount, notes)
+            ok = self.db.update_expense(user_id, expense_id, vendor, amount, notes, category)
             if not ok:
                 return JSONResponse(status_code=404, content={"error": "Expense not found."})
             return JSONResponse(status_code=200, content={"success": True})

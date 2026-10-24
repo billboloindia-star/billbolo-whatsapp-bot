@@ -22,6 +22,18 @@ VOICE_COMMAND_ACTIONS = (
     "unknown",
 )
 
+EXPENSE_CATEGORIES = (
+    "Materials",
+    "Labour",
+    "Transport",
+    "Rent",
+    "Utilities",
+    "Equipment",
+    "Office Supplies",
+    "Professional Fees",
+    "Other",
+)
+
 
 class VoiceCommand(BaseModel):
     """A single voice command, classified into one of a fixed set of app actions."""
@@ -102,6 +114,7 @@ class ExtractedData(BaseModel):
     billing_address: Optional[str] = Field(None, description="Billing address, if printed on a bill")
     shipping_address: Optional[str] = Field(None, description="Shipping address, if printed on a bill")
     order_date: Optional[str] = Field(None, description="Order/invoice date, if printed on a bill")
+    expense_category: Optional[str] = Field(None, description="For expenses/invoices only: one of the fixed expense categories, inferred from vendor/items")
 
 
 class GeminiExtractor:
@@ -267,7 +280,8 @@ JSON Schema:
     "seller_address": "Seller's address/place printed on the bill (or null)",
     "billing_address": "Billing address printed on the bill (or null)",
     "shipping_address": "Shipping address printed on the bill (or null, if same as billing leave shipping_address null)",
-    "order_date": "Order/invoice date printed on the bill, as written (or null)"
+    "order_date": "Order/invoice date printed on the bill, as written (or null)",
+    "expense_category": "For an expense/invoice (not a quotation): one of Materials, Labour, Transport, Rent, Utilities, Equipment, Office Supplies, Professional Fees, Other - inferred from the vendor name and items (or null for a quotation)"
 }}
 
 Rules:
@@ -281,6 +295,7 @@ Rules:
 7. If a bill/receipt shows an HSN or SAC code next to an item (common on GST invoices), capture it exactly as printed in that item's hsn_code field. Leave it null if the bill has no HSN/SAC codes.
 8. If a bill/receipt shows the seller's business name, GSTIN, or address (usually printed at the top as the "Sold By" / letterhead), capture them in seller_name, seller_gstin, seller_address. Capture billing_address and shipping_address separately if both are printed (common on e-commerce invoices) - leave shipping_address null if only one address is shown. Capture order_date/invoice_date exactly as printed in order_date. Leave any of these null if not present on the bill - do not guess or invent them.
 9. If a bill/receipt has a per-line breakdown (Discount, Taxable Value, SGST, CGST or IGST, Total columns), capture each of those exactly as printed in that item's discount, taxable_value, sgst, cgst, igst and line_total fields. These are per-line figures, not the bill's overall totals. The line_total values across all items, summed together, should add up to (or very closely match) the bill's overall grand_total - if your captured figures don't reconcile, re-check the columns before finalizing. Leave any of these fields null if the bill doesn't show that level of detail.
+10. For an expense or invoice (data_type is "invoice" or "expense", not "quotation"), set expense_category to your best guess from EXACTLY one of: Materials, Labour, Transport, Rent, Utilities, Equipment, Office Supplies, Professional Fees, Other. Infer it from the seller/vendor name and the items - e.g. a hardware/building-materials shop is Materials, a petrol pump or vehicle-related bill is Transport, a mobile/electricity/internet bill is Utilities. If genuinely unclear, use "Other" rather than guessing wildly. Leave this null for quotations.
 
 Return ONLY the JSON object, no other text."""
 
@@ -297,6 +312,9 @@ Return ONLY the JSON object, no other text."""
 
             data_dict = json.loads(json_text)
             extracted = ExtractedData(**data_dict)
+
+            if extracted.expense_category and extracted.expense_category not in EXPENSE_CATEGORIES:
+                extracted.expense_category = "Other"
 
             for item in extracted.items:
                 item.calculate_amount()

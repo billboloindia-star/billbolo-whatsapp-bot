@@ -266,6 +266,7 @@ class AppDBClient:
         billing_address: Optional[str] = None,
         shipping_address: Optional[str] = None,
         order_date: Optional[str] = None,
+        category: Optional[str] = None,
     ) -> Optional[str]:
         try:
             expense_id = str(uuid.uuid4())
@@ -285,6 +286,7 @@ class AppDBClient:
                     "billing_address": billing_address or "",
                     "shipping_address": shipping_address or "",
                     "order_date": order_date or "",
+                    "category": category or "Other",
                     "created_at": created_at,
                 }
             )
@@ -303,6 +305,7 @@ class AppDBClient:
         vendor: str,
         amount: float,
         notes: str = "",
+        category: Optional[str] = None,
     ) -> bool:
         expense = next(
             (e for e in self.list_expenses(user_id) if e.get("expense_id") == expense_id),
@@ -313,11 +316,12 @@ class AppDBClient:
         try:
             self.table.update_item(
                 Key={"user_id": user_id, "sort_key": expense["sort_key"]},
-                UpdateExpression="SET vendor = :v, amount = :a, notes = :n",
+                UpdateExpression="SET vendor = :v, amount = :a, notes = :n, category = :c",
                 ExpressionAttributeValues={
                     ":v": vendor,
                     ":a": _to_decimal(amount),
                     ":n": notes,
+                    ":c": category or expense.get("category", "Other"),
                 },
             )
             return True

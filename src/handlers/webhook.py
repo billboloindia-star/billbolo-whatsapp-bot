@@ -212,6 +212,21 @@ class WebhookHandler:
         if user.get("sheet_id"):
             self.sheets.append_expense_to_sheet(user["sheet_id"], extracted, phone_number)
 
+        self.db.create_expense(
+            phone_number,
+            vendor=extracted.seller_name or extracted.client_name,
+            amount=extracted.grand_total or 0,
+            notes=extracted.notes,
+            items=[item.model_dump() for item in extracted.items],
+            seller_name=extracted.seller_name,
+            seller_gstin=extracted.seller_gstin,
+            seller_address=extracted.seller_address,
+            billing_address=extracted.billing_address,
+            shipping_address=extracted.shipping_address,
+            order_date=extracted.order_date,
+            category=extracted.expense_category,
+        )
+
         if extracted.items:
             lines = []
             for item in extracted.items:
@@ -233,10 +248,12 @@ class WebhookHandler:
                     line += f"\n  ({', '.join(breakdown)})"
                 lines.append(line)
             itemized = "\n".join(lines)
-            reply = f"Expense logged: ₹{extracted.grand_total:,.2f}\n{itemized}"
+            category_line = f"\nCategory: {extracted.expense_category}" if extracted.expense_category else ""
+            reply = f"Expense logged: ₹{extracted.grand_total:,.2f}\n{itemized}{category_line}"
         else:
             description = extracted.seller_name or extracted.notes or "No description"
-            reply = f"Expense logged: ₹{extracted.grand_total:,.2f} - {description}"
+            category_suffix = f" ({extracted.expense_category})" if extracted.expense_category else ""
+            reply = f"Expense logged: ₹{extracted.grand_total:,.2f} - {description}{category_suffix}"
 
         await self._send_reply(phone_number, reply)
 
