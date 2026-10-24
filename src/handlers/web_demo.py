@@ -15,6 +15,7 @@ logger = logging.getLogger(__name__)
 
 DAILY_LIMIT_PER_IP = 5
 MAX_AUDIO_BYTES = 10 * 1024 * 1024  # ~60s of compressed voice audio, generous ceiling
+MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB ceiling for a bill photo/PDF
 
 
 class WebDemoHandler:
@@ -121,6 +122,60 @@ class WebDemoHandler:
             return self._build_success_response(extracted)
         except Exception as e:
             logger.error(f"Web demo audio generation failed: {e}")
+            return JSONResponse(
+                status_code=500,
+                content={"error": "Something went wrong. Please try again."},
+            )
+
+    async def handle_generate_expense(self, request: Request) -> Response:
+        """Accept a bill/receipt photo or PDF and return the extracted expense data.
+        Demo only - nothing is persisted or tied to any account."""
+        try:
+            client_ip = self._get_client_ip(request)
+            if not self.db.check_rate_limit(client_ip, limit=DAILY_LIMIT_PER_IP):
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": f"You've reached today's limit of {DAILY_LIMIT_PER_IP} free demo "
+                        "tries. Message BillBolo on WhatsApp for unlimited use: "
+                        "wa.me/918123422932"
+                    },
+                )
+
+            form = await request.form()
+            image_file = form.get("image")
+            if not isinstance(image_file, UploadFile):
+                return JSONResponse(status_code=400, content={"error": "No file received."})
+
+            image_bytes = await image_file.read()
+            if not image_bytes:
+                return JSONResponse(status_code=400, content={"error": "Empty file."})
+
+            if len(image_bytes) > MAX_IMAGE_BYTES:
+                return JSONResponse(status_code=400, content={"error": "File is too large (max 10 MB)."})
+
+            mime_type = getattr(image_file, "content_type", None) or "image/jpeg"
+            extracted = self.extractor.extract_from_image(image_bytes, image_mime_type=mime_type)
+            if not extracted:
+                return JSONResponse(
+                    status_code=422,
+                    content={"error": "Couldn't read that bill/receipt. Try a clearer photo or a different file."},
+                )
+
+            return JSONResponse(
+                status_code=200,
+                content={
+                    "vendor": extracted.seller_name or extracted.client_name,
+                    "items": [item.model_dump() for item in extracted.items],
+                    "grand_total": extracted.grand_total,
+                    "category": extracted.expense_category,
+                    "seller_name": extracted.seller_name,
+                    "seller_gstin": extracted.seller_gstin,
+                    "order_date": extracted.order_date,
+                },
+            )
+        except Exception as e:
+            logger.error(f"Web demo expense extraction failed: {e}")
             return JSONResponse(
                 status_code=500,
                 content={"error": "Something went wrong. Please try again."},

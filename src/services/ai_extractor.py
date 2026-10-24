@@ -102,7 +102,7 @@ class ExtractedData(BaseModel):
     client_name: Optional[str] = Field(None, description="Client/Party name")
     items: list[LineItem] = Field(default_factory=list, description="Line items")
     notes: Optional[str] = Field(None, description="Additional notes/terms")
-    gst_percentage: float = Field(default=18.0, description="GST percentage")
+    gst_percentage: Optional[float] = Field(default=18.0, description="GST percentage - 0 if the bill shows no GST")
     total_before_gst: Optional[float] = Field(None, description="Subtotal before tax")
     gst_amount: Optional[float] = Field(None, description="GST amount")
     grand_total: Optional[float] = Field(None, description="Final total with tax")
@@ -315,6 +315,9 @@ Return ONLY the JSON object, no other text."""
 
             if extracted.expense_category and extracted.expense_category not in EXPENSE_CATEGORIES:
                 extracted.expense_category = "Other"
+
+            if extracted.gst_percentage is None:
+                extracted.gst_percentage = 0.0
 
             for item in extracted.items:
                 item.calculate_amount()

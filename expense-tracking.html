@@ -56,6 +56,36 @@
         <p class="format-intro-body reveal">Send a photo of any bill or receipt on WhatsApp. BillBolo reads the vendor, items, HSN codes, GST breakdown, and total — then automatically categorizes it (Materials, Labour, Transport, and more) so your spending stays organized without any manual entry.</p>
     </section>
 
+    <section class="demo-section">
+        <div class="section-header reveal">
+            <p class="section-eyebrow">Try It Right Here</p>
+            <h2>See it work, no signup needed</h2>
+            <p>Upload a bill photo or PDF below — this is a live demo, nothing is saved anywhere.</p>
+        </div>
+        <div class="demo-box reveal">
+            <input type="file" id="demoFileInput" accept="image/*,application/pdf" class="demo-file-input" />
+            <label for="demoFileInput" id="demoDropLabel" class="demo-drop-label">
+                <span class="demo-drop-icon">📸</span>
+                <span id="demoDropText" class="demo-drop-text">Tap to upload a bill or receipt (photo or PDF)</span>
+            </label>
+
+            <div id="demoError" class="demo-error" style="display: none;"></div>
+
+            <div id="demoResult" class="demo-result" style="display: none;">
+                <div class="demo-result-header">
+                    <span id="demoResultVendor" class="demo-result-vendor"></span>
+                    <span id="demoResultCategory" class="demo-result-category"></span>
+                </div>
+                <div id="demoResultItems" class="demo-result-items"></div>
+                <div class="demo-result-total">
+                    <span>Total</span>
+                    <span id="demoResultTotal"></span>
+                </div>
+                <p class="demo-result-note">This is exactly what gets logged automatically when you send this on WhatsApp.</p>
+            </div>
+        </div>
+    </section>
+
     <section class="cta-section reveal">
         <h2>Try it yourself, right now</h2>
         <p>Message BillBolo on WhatsApp — no signup, no download, just send a message.</p>
@@ -90,5 +120,6 @@
     </footer>
 
     <script src="script.js"></script>
+    <script src="expense-demo.js"></script>
 </body>
 </html>

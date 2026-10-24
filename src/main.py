@@ -104,6 +104,13 @@ async def web_demo_quotation_audio(request: Request):
     return await web_demo_handler.handle_generate_audio(request)
 
 
+@app.post("/api/web/expense")
+async def web_demo_expense(request: Request):
+    """Public web demo endpoint - extract a sample expense from a bill photo/PDF."""
+    logger.debug("Web demo expense request received")
+    return await web_demo_handler.handle_generate_expense(request)
+
+
 @app.post("/api/auth/signup")
 async def auth_signup(request: Request):
     """Create a new web app account."""
