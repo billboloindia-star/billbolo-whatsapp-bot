@@ -4,12 +4,14 @@
 // real phone number. Underlying demo data expires after a day.
 
 const ESTIMATE_DEMO_API = "https://api.billbolo.in/api/web/estimate";
+const ESTIMATE_DEMO_AUDIO_API = "https://api.billbolo.in/api/web/estimate/audio";
 const ESTIMATE_CONVERT_API = "https://api.billbolo.in/api/web/estimate/convert";
 const ESTIMATE_SESSION_KEY = "billbolo_estimate_demo_session";
 
 document.addEventListener("DOMContentLoaded", () => {
     const input = document.getElementById("estDemoInput");
     const generateBtn = document.getElementById("estDemoGenerate");
+    const micBtn = document.getElementById("estDemoMic");
     const errorBox = document.getElementById("estDemoError");
     const quoteResult = document.getElementById("estDemoQuoteResult");
     const quoteClient = document.getElementById("estDemoQuoteClient");
@@ -89,22 +91,88 @@ document.addEventListener("DOMContentLoaded", () => {
                 body: JSON.stringify({ text, session_id: getSessionId() }),
             });
             const data = await res.json();
-
-            if (!res.ok) {
-                showError(data.error || "Something went wrong. Please try again.");
-            } else {
-                quoteClient.textContent = data.client_name || "Quotation";
-                renderItems(quoteItems, data.items);
-                quoteTotal.textContent = `₹${formatInr(data.grand_total)}`;
-                quoteResult.style.display = "block";
-                step2.style.display = "block";
-            }
+            handleQuoteResponse(res.ok, data);
         } catch {
             showError("Couldn't reach the server. Please try again.");
         } finally {
             generateBtn.disabled = false;
             generateBtn.textContent = "Generate Quotation";
         }
+    }
+
+    function handleQuoteResponse(ok, data) {
+        if (!ok) {
+            showError(data.error || "Something went wrong. Please try again.");
+        } else {
+            quoteClient.textContent = data.client_name || "Quotation";
+            renderItems(quoteItems, data.items);
+            quoteTotal.textContent = `₹${formatInr(data.grand_total)}`;
+            quoteResult.style.display = "block";
+            step2.style.display = "block";
+        }
+    }
+
+    async function handleAudioGenerate(blob) {
+        generateBtn.disabled = true;
+        micBtn.disabled = true;
+        generateBtn.textContent = "Generating…";
+        errorBox.style.display = "none";
+        quoteResult.style.display = "none";
+        step2.style.display = "none";
+        invoiceResult.style.display = "none";
+
+        try {
+            const formData = new FormData();
+            formData.append("audio", blob, "recording.webm");
+            formData.append("session_id", getSessionId());
+
+            const res = await fetch(ESTIMATE_DEMO_AUDIO_API, { method: "POST", body: formData });
+            const data = await res.json();
+            handleQuoteResponse(res.ok, data);
+        } catch {
+            showError("Couldn't reach the server. Please try again.");
+        } finally {
+            generateBtn.disabled = false;
+            micBtn.disabled = false;
+            generateBtn.textContent = "Generate Quotation";
+        }
+    }
+
+    if (micBtn) {
+        let mediaRecorder = null;
+        let chunks = [];
+
+        micBtn.addEventListener("click", async () => {
+            if (mediaRecorder && mediaRecorder.state === "recording") {
+                mediaRecorder.stop();
+                return;
+            }
+            let stream;
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            } catch {
+                showError("Microphone access was denied or isn't available in this browser.");
+                return;
+            }
+            const mimeType = ["audio/webm", "audio/ogg", "audio/mp4"].find(
+                (t) => window.MediaRecorder && MediaRecorder.isTypeSupported(t)
+            );
+            mediaRecorder = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
+            chunks = [];
+            mediaRecorder.ondataavailable = (e) => {
+                if (e.data.size > 0) chunks.push(e.data);
+            };
+            mediaRecorder.onstop = () => {
+                stream.getTracks().forEach((t) => t.stop());
+                micBtn.classList.remove("recording");
+                micBtn.textContent = "🎤";
+                const blob = new Blob(chunks, { type: mediaRecorder.mimeType || "audio/webm" });
+                handleAudioGenerate(blob);
+            };
+            mediaRecorder.start();
+            micBtn.classList.add("recording");
+            micBtn.textContent = "⏹";
+        });
     }
 
     async function handleConvert() {

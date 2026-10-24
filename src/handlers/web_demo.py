@@ -294,53 +294,92 @@ class WebDemoHandler:
                 return JSONResponse(status_code=400, content={"error": "Description is too long (max 1000 characters)."})
 
             identifier, session_id = self._resolve_demo_identifier(session_id, "demoestimate")
-
             extracted = self.extractor.extract_from_text(text)
-            if not extracted or not extracted.items:
-                return JSONResponse(
-                    status_code=422,
-                    content={
-                        "error": "Couldn't understand that. Try something like "
-                        "'Quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft'."
-                    },
-                )
-
-            doc_ref = self.pdf_gen.build_reference(extracted, "quotation")
-            pdf_bytes = self.pdf_gen.generate_quotation(
-                extracted, {"name": "BillBolo Demo"}, is_pro=False, doc_ref=doc_ref
-            )
-            if not pdf_bytes:
-                return JSONResponse(status_code=500, content={"error": "Failed to generate PDF. Please try again."})
-
-            self.db.create_quotation(
-                identifier,
-                quote_number=doc_ref,
-                client_name=extracted.client_name or "Client",
-                items=[item.model_dump() for item in extracted.items],
-                total_before_gst=extracted.total_before_gst or 0,
-                gst_amount=extracted.gst_amount or 0,
-                gst_percentage=extracted.gst_percentage or 0,
-                grand_total=extracted.grand_total or 0,
-                discount_amount=extracted.discount_amount,
-                discount_percent=extracted.discount_percent,
-                notes=extracted.notes,
-                ttl_days=DEMO_LEDGER_TTL_DAYS,
-            )
-
-            return JSONResponse(
-                status_code=200,
-                content={
-                    "session_id": session_id,
-                    "quote_number": doc_ref,
-                    "client_name": extracted.client_name,
-                    "items": [item.model_dump() for item in extracted.items],
-                    "grand_total": extracted.grand_total,
-                    "pdf_base64": base64.standard_b64encode(pdf_bytes).decode("utf-8"),
-                },
-            )
+            return self._finish_estimate(identifier, session_id, extracted)
         except Exception as e:
             logger.error(f"Web demo estimate generation failed: {e}")
             return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    async def handle_estimate_audio_command(self, request: Request) -> Response:
+        """Same as handle_estimate_command, but for a recorded voice note -
+        works in whatever language the person spoke, same as the real bot."""
+        try:
+            client_ip = self._get_client_ip(request)
+            if not self.db.check_rate_limit(client_ip, limit=MONTHLY_LIMIT_PER_IP):
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": f"You've reached this month's limit of {MONTHLY_LIMIT_PER_IP} free demo "
+                        "tries. Message BillBolo on WhatsApp for unlimited use: "
+                        "wa.me/918123422932"
+                    },
+                )
+
+            form = await request.form()
+            audio_file = form.get("audio")
+            session_id = str(form.get("session_id") or "")
+            if not isinstance(audio_file, UploadFile):
+                return JSONResponse(status_code=400, content={"error": "No audio file received."})
+
+            audio_bytes = await audio_file.read()
+            if not audio_bytes:
+                return JSONResponse(status_code=400, content={"error": "Empty recording. Please try again."})
+            if len(audio_bytes) > MAX_AUDIO_BYTES:
+                return JSONResponse(status_code=400, content={"error": "Recording is too long (max 60 seconds)."})
+
+            mime_type = getattr(audio_file, "content_type", None) or "audio/webm"
+            identifier, session_id = self._resolve_demo_identifier(session_id, "demoestimate")
+            extracted = self.extractor.extract_from_audio(audio_bytes, audio_mime_type=mime_type)
+            return self._finish_estimate(identifier, session_id, extracted)
+        except Exception as e:
+            logger.error(f"Web demo estimate audio generation failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
+
+    def _finish_estimate(self, identifier: str, session_id: str, extracted) -> JSONResponse:
+        """Shared tail end of generating + persisting a demo quotation,
+        for both the text and audio estimate endpoints."""
+        if not extracted or not extracted.items:
+            return JSONResponse(
+                status_code=422,
+                content={
+                    "error": "Couldn't understand that. Try something like "
+                    "'Quotation for Sharma Ji, 80 sq ft wardrobe at 1600 per sq ft'."
+                },
+            )
+
+        doc_ref = self.pdf_gen.build_reference(extracted, "quotation")
+        pdf_bytes = self.pdf_gen.generate_quotation(
+            extracted, {"name": "BillBolo Demo"}, is_pro=False, doc_ref=doc_ref
+        )
+        if not pdf_bytes:
+            return JSONResponse(status_code=500, content={"error": "Failed to generate PDF. Please try again."})
+
+        self.db.create_quotation(
+            identifier,
+            quote_number=doc_ref,
+            client_name=extracted.client_name or "Client",
+            items=[item.model_dump() for item in extracted.items],
+            total_before_gst=extracted.total_before_gst or 0,
+            gst_amount=extracted.gst_amount or 0,
+            gst_percentage=extracted.gst_percentage or 0,
+            grand_total=extracted.grand_total or 0,
+            discount_amount=extracted.discount_amount,
+            discount_percent=extracted.discount_percent,
+            notes=extracted.notes,
+            ttl_days=DEMO_LEDGER_TTL_DAYS,
+        )
+
+        return JSONResponse(
+            status_code=200,
+            content={
+                "session_id": session_id,
+                "quote_number": doc_ref,
+                "client_name": extracted.client_name,
+                "items": [item.model_dump() for item in extracted.items],
+                "grand_total": extracted.grand_total,
+                "pdf_base64": base64.standard_b64encode(pdf_bytes).decode("utf-8"),
+            },
+        )
 
     async def handle_estimate_convert(self, request: Request) -> Response:
         """Convert this demo session's open quotation into an invoice."""

@@ -139,6 +139,13 @@ async def web_demo_estimate_convert(request: Request):
     return await web_demo_handler.handle_estimate_convert(request)
 
 
+@app.post("/api/web/estimate/audio")
+async def web_demo_estimate_audio(request: Request):
+    """Public web demo endpoint - generate a sample quotation from a voice note, scoped to a demo session."""
+    logger.debug("Web demo estimate audio request received")
+    return await web_demo_handler.handle_estimate_audio_command(request)
+
+
 @app.post("/api/auth/signup")
 async def auth_signup(request: Request):
     """Create a new web app account."""
