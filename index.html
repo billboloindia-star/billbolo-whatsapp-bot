@@ -3,15 +3,15 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BillBolo — Quotations in 5 Seconds, Inside WhatsApp</title>
-    <meta name="description" content="Send a voice note or snap a bill photo on WhatsApp. BillBolo's AI drafts a branded PDF quotation and logs the expense to your Google Sheet — in under 5 seconds. Built for Indian contractors, freelancers and shop owners.">
+    <title>BillBolo — Run Your Business by Just Talking, on WhatsApp</title>
+    <meta name="description" content="No app to download, no forms to fill. Speak in Hindi, Bengali, Tamil, Telugu, Marathi or English — BillBolo handles quotations, expenses, and tracking who owes you money, right inside WhatsApp.">
     <link rel="canonical" href="https://billbolo.in/">
 
     <!-- Open Graph / WhatsApp / Facebook link previews -->
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://billbolo.in/">
-    <meta property="og:title" content="BillBolo — Quotations in 5 Seconds, Inside WhatsApp">
-    <meta property="og:description" content="Send a voice note or snap a bill photo on WhatsApp. BillBolo's AI drafts a branded PDF quotation and logs the expense to your Google Sheet — in under 5 seconds.">
+    <meta property="og:title" content="BillBolo — Run Your Business by Just Talking, on WhatsApp">
+    <meta property="og:description" content="No app to download, no forms to fill. Just speak, in your own language, and BillBolo takes care of the rest.">
     <meta property="og:image" content="https://billbolo.in/assets/og-image.png">
     <meta property="og:image:width" content="1200">
     <meta property="og:image:height" content="630">
@@ -19,8 +19,8 @@
 
     <!-- Twitter card -->
     <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="BillBolo — Quotations in 5 Seconds, Inside WhatsApp">
-    <meta name="twitter:description" content="Send a voice note or snap a bill photo on WhatsApp. BillBolo's AI drafts a branded PDF quotation in under 5 seconds.">
+    <meta name="twitter:title" content="BillBolo — Run Your Business by Just Talking, on WhatsApp">
+    <meta name="twitter:description" content="No app to download, no forms to fill. Just speak, and BillBolo takes care of the rest.">
     <meta name="twitter:image" content="https://billbolo.in/assets/og-image.png">
 
     <!-- Structured data -->
@@ -31,7 +31,7 @@
         "name": "BillBolo",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "WhatsApp",
-        "description": "AI-powered WhatsApp bot that turns voice notes and bill photos into branded PDF quotations and expense logs for Indian contractors, freelancers and shop owners.",
+        "description": "AI-native WhatsApp assistant that handles quotations, expense tracking, and client credit (udhaar) ledger for Indian contractors, freelancers and shop owners — zero app install.",
         "url": "https://billbolo.in/",
         "offers": {
             "@type": "Offer",
@@ -43,7 +43,7 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Noto+Sans+Telugu:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;800;900&family=Inter:wght@300;400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700;800&family=Noto+Sans+Bengali:wght@400;500;600;700;800&family=Noto+Sans+Tamil:wght@400;500;600;700;800&family=Noto+Sans+Telugu:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="styles.css">
     <link rel="icon" type="image/svg+xml" href="assets/logo-icon.svg">
 </head>
@@ -56,7 +56,6 @@
             <a href="index.html" class="logo"><img src="assets/logo-full.svg" alt="BillBolo" class="logo-img"></a>
             <div class="nav-links">
                 <a href="#features" data-i18n="nav.features">Features</a>
-                <a href="#pricing" data-i18n="nav.pricing">Pricing</a>
                 <a href="privacy.html" data-i18n="nav.privacy">Privacy</a>
                 <select id="langSwitcher" class="lang-switcher" aria-label="Language">
                     <option value="en">EN</option>
@@ -75,57 +74,70 @@
         <div class="container">
             <div class="hero-content">
                 <p class="hero-eyebrow" data-i18n="hero.eyebrow">Built for Indian Contractors, Freelancers &amp; Shop Owners</p>
-                <h1><span data-i18n="hero.title1">Quotations in 5 Seconds.</span><br><span data-i18n="hero.title2">Inside WhatsApp.</span></h1>
-                <p class="hero-subtitle" data-i18n="hero.subtitle">Send a voice note or snap a bill photo. BillBolo's AI drafts a branded PDF quotation and logs the expense to your Google Sheet — before you've even put your phone down.</p>
+                <h1><span data-i18n="hero.title1">Run your business by just talking</span><br><span data-i18n="hero.title2">— on WhatsApp you already have open.</span></h1>
+                <p class="hero-subtitle" data-i18n="hero.subtitle">No app to download, no forms to fill. Just speak, in your own language, and BillBolo takes care of the rest.</p>
                 <div class="hero-cta-group">
                     <a href="https://wa.me/918123422932" target="_blank" class="hero-cta-primary" data-i18n="hero.ctaPrimary">Start on WhatsApp →</a>
-                    <a href="#pricing" class="hero-cta-secondary" data-i18n="hero.ctaSecondary">See pricing</a>
+                    <a href="#features" class="hero-cta-secondary" data-i18n="hero.ctaSecondary">See what it does</a>
                 </div>
                 <p class="hero-try-web">
                     <span data-i18n="hero.tryWebPrefix">Prefer a screen first?</span> <a href="https://app.billbolo.in" target="_blank" data-i18n="hero.tryWebLink">Try it on the web →</a>
                 </p>
             </div>
             <div class="hero-visual">
-                <div class="phone-mockup">
-                    <div class="phone-screen">
-                        <div class="wa-header">
-                            <div class="wa-avatar">B</div>
-                            <div class="wa-contact">
-                                <span class="wa-name">BillBolo</span>
-                                <span class="wa-status">online</span>
-                            </div>
+                <div class="hero-visual-inner">
+                    <div class="floating-card floating-card-ledger">
+                        <span class="floating-card-icon">💰</span>
+                        <div class="floating-card-text">
+                            <strong data-i18n="phone.floatLedgerTitle">Ramesh owes you</strong>
+                            <span data-i18n="phone.floatLedgerAmount">₹3,200</span>
                         </div>
-                        <div class="wa-chat">
-                            <div class="wa-bubble sent voice">
-                                <span class="wa-icon">🎤</span>
-                                <span class="wa-waveform">▂▅▇▅▃▆▂▅▇▃▅</span>
-                                <span class="wa-duration">0:12</span>
-                                <span class="wa-meta">10:41 <span class="wa-ticks">✓✓</span></span>
-                            </div>
-                            <div class="wa-bubble sent photo">
-                                <div class="wa-photo-thumb">🧾</div>
-                                <span class="wa-meta">10:41 <span class="wa-ticks">✓✓</span></span>
-                            </div>
-                            <div class="wa-bubble received typing">
-                                <span class="wa-dot"></span><span class="wa-dot"></span><span class="wa-dot"></span>
-                            </div>
-                            <div class="wa-bubble received">
-                                <p><strong data-i18n="phone.readyLine1">Quotation ready ✅</strong><br>
-                                <span data-i18n="phone.readyLine2">Sharma Ji — Bathroom Tiling</span><br>
-                                <span data-i18n="phone.readyLine3">3 items</span> · ₹18,500</p>
-                                <span class="wa-meta">10:42</span>
-                            </div>
-                            <div class="wa-bubble received doc">
-                                <div class="wa-doc">
-                                    <span class="wa-doc-icon">📄</span>
-                                    <div class="wa-doc-info">
-                                        <span class="wa-doc-name">Quotation_SharmaJi.pdf</span>
-                                        <span class="wa-doc-size">42 KB</span>
-                                    </div>
+                    </div>
+                    <div class="phone-mockup">
+                        <div class="phone-screen">
+                            <div class="wa-header">
+                                <div class="wa-avatar">B</div>
+                                <div class="wa-contact">
+                                    <span class="wa-name">BillBolo</span>
+                                    <span class="wa-status">online</span>
                                 </div>
-                                <span class="wa-meta">10:42</span>
+                            </div>
+                            <div class="wa-chat">
+                                <div class="wa-bubble sent voice">
+                                    <span class="wa-icon">🎤</span>
+                                    <span class="wa-waveform">▂▅▇▅▃▆▂▅▇▃▅</span>
+                                    <span class="wa-duration">0:12</span>
+                                    <span class="wa-meta">10:41 <span class="wa-ticks">✓✓</span></span>
+                                </div>
+                                <div class="wa-bubble sent photo">
+                                    <div class="wa-photo-thumb">🧾</div>
+                                    <span class="wa-meta">10:41 <span class="wa-ticks">✓✓</span></span>
+                                </div>
+                                <div class="wa-bubble received typing">
+                                    <span class="wa-dot"></span><span class="wa-dot"></span><span class="wa-dot"></span>
+                                </div>
+                                <div class="wa-bubble received">
+                                    <p><strong data-i18n="phone.readyLine1">Quotation ready ✅</strong><br>
+                                    <span data-i18n="phone.readyLine2">Sharma Ji — Bathroom Tiling</span><br>
+                                    <span data-i18n="phone.readyLine3">3 items</span> · ₹18,500</p>
+                                    <span class="wa-meta">10:42</span>
+                                </div>
+                                <div class="wa-bubble received doc">
+                                    <div class="wa-doc">
+                                        <span class="wa-doc-icon">📄</span>
+                                        <div class="wa-doc-info">
+                                            <span class="wa-doc-name">Quotation_SharmaJi.pdf</span>
+                                            <span class="wa-doc-size">42 KB</span>
+                                        </div>
+                                    </div>
+                                    <span class="wa-meta">10:42</span>
+                                </div>
                             </div>
                         </div>
+                    </div>
+                    <div class="floating-card floating-card-reminder">
+                        <span class="floating-card-icon">✅</span>
+                        <span data-i18n="phone.floatReminder">Payment reminder sent</span>
                     </div>
                 </div>
             </div>
@@ -135,22 +147,10 @@
     <!-- Trust Strip -->
     <section class="trust-strip">
         <div class="trust-strip-inner reveal">
-            <span class="trust-item">
-                <span class="icon-badge icon-badge-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span>
-                <span data-i18n="trust.speed">5-second turnaround</span>
-            </span>
-            <span class="trust-item">
-                <span class="icon-badge icon-badge-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg></span>
-                <span data-i18n="trust.noApp">No app to install</span>
-            </span>
-            <span class="trust-item">
-                <span class="icon-badge icon-badge-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span>
-                <span data-i18n="trust.security">Bank-grade encryption</span>
-            </span>
-            <span class="trust-item">
-                <span class="icon-badge icon-badge-sm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></span>
-                <span data-i18n="trust.sheets">Synced to your own Google Sheet</span>
-            </span>
+            <span class="trust-pill" data-i18n="trust.noApp">No app to install</span>
+            <span class="trust-pill" data-i18n="trust.voice">Talk in your own language</span>
+            <span class="trust-pill" data-i18n="trust.security">Bank-grade encryption</span>
+            <span class="trust-pill" data-i18n="trust.sheets">Synced to your own Google Sheet</span>
         </div>
     </section>
 
@@ -183,45 +183,70 @@
     <!-- Features Section -->
     <section class="features" id="features">
         <div class="section-header reveal">
-            <p class="section-eyebrow" data-i18n="features.eyebrow">Services</p>
+            <p class="section-eyebrow" data-i18n="features.eyebrow">What You Get</p>
             <h2 data-i18n="features.title">Everything your business needs. Nothing to install.</h2>
-            <p data-i18n="features.subtitle">One WhatsApp number. Six jobs handled automatically.</p>
+            <p data-i18n="features.subtitle">All inside the WhatsApp chat you already have open.</p>
         </div>
         <div class="features-grid">
             <div class="feature-card reveal" style="transition-delay: 0s">
-                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></div>
-                <h3 data-i18n="features.card1.title">Voice-to-Quotation</h3>
-                <p data-i18n="features.card1.body">Record a 10-second voice note describing the job. Get a polished, branded PDF quotation back in under 5 seconds.</p>
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg></div>
+                <h3 data-i18n="features.card1.title">Quotations</h3>
+                <p data-i18n="features.card1.body">Speak the job details or type them — get a professional, branded PDF quotation back in seconds.</p>
             </div>
-            <div class="feature-card reveal" style="transition-delay: 0.08s">
+            <div class="feature-card reveal" style="transition-delay: 0.05s">
                 <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg></div>
-                <h3 data-i18n="features.card2.title">Snap-to-Expense</h3>
-                <p data-i18n="features.card2.body">Photograph any bill or receipt. Our AI reads the vendor, items, amount, and date — no typing, no filing.</p>
+                <h3 data-i18n="features.card2.title">Expense Tracking</h3>
+                <p data-i18n="features.card2.body">Snap a photo of any bill. BillBolo reads every item, tax, and detail automatically — no typing.</p>
             </div>
-            <div class="feature-card reveal" style="transition-delay: 0.16s">
-                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
-                <h3 data-i18n="features.card3.title">Auto-Synced Books</h3>
-                <p data-i18n="features.card3.body">Every quotation and expense lands in your own Google Sheet in real time. Your accountant (or you, come March) will thank you.</p>
+            <div class="feature-card reveal" style="transition-delay: 0.1s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></div>
+                <h3 data-i18n="features.card3.title">Client Ledger (Udhaar)</h3>
+                <p data-i18n="features.card3.body">Know exactly who owes you, how much, and for what — always up to date.</p>
             </div>
-            <div class="feature-card reveal" style="transition-delay: 0.24s">
-                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
-                <h3 data-i18n="features.card4.title">Branded, Professional PDFs</h3>
-                <p data-i18n="features.card4.body">Every document carries your business name and details — looks like it came from a proper office, not a notebook page.</p>
+            <div class="feature-card reveal" style="transition-delay: 0.15s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path><path d="M19 10v2a7 7 0 0 1-14 0v-2"></path><line x1="12" y1="19" x2="12" y2="23"></line><line x1="8" y1="23" x2="16" y2="23"></line></svg></div>
+                <h3 data-i18n="features.card4.title">Multi-Language, Voice-First</h3>
+                <p data-i18n="features.card4.body">Talk naturally in Hindi, Bengali, Tamil, Telugu, Marathi or English. No menus, no learning curve.</p>
             </div>
-            <div class="feature-card reveal" style="transition-delay: 0.32s">
-                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
-                <h3 data-i18n="features.card5.title">5-Second Turnaround</h3>
-                <p data-i18n="features.card5.body">Powered by advanced AI. While the competition is still typing a reply, your quote is already in the customer's inbox.</p>
+            <div class="feature-card reveal" style="transition-delay: 0.2s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line><line x1="9" y1="9" x2="15" y2="15"></line><line x1="15" y1="9" x2="9" y2="15"></line></svg></div>
+                <h3 data-i18n="features.card5.title">Zero Install</h3>
+                <p data-i18n="features.card5.body">Works entirely inside WhatsApp. Nothing to download, nothing to set up.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.25s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg></div>
+                <h3 data-i18n="features.card6.title">GST-Compliant Invoicing</h3>
+                <p data-i18n="features.card6.body">Proper tax calculation and breakup on every quotation and invoice, built in.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.3s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><line x1="17" y1="14" x2="17" y2="21"></line><line x1="14" y1="17" x2="21" y2="17"></line></svg></div>
+                <h3 data-i18n="features.card7.title">Payment Collection</h3>
+                <p data-i18n="features.card7.body">Send a UPI/QR payment link — the moment your client pays, your ledger updates itself.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.35s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></div>
+                <h3 data-i18n="features.card8.title">Payment Reminders</h3>
+                <p data-i18n="features.card8.body">Automatic, polite nudges to clients who haven't paid yet — no awkward follow-up calls.</p>
             </div>
             <div class="feature-card reveal" style="transition-delay: 0.4s">
-                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg></div>
-                <h3 data-i18n="features.card6.title">Bank-Grade Security, Zero New Apps</h3>
-                <p data-i18n="features.card6.body">Encrypted end-to-end. No downloads, no logins, no training — just the WhatsApp you already check 50 times a day.</p>
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg></div>
+                <h3 data-i18n="features.card9.title">Reports &amp; Statements</h3>
+                <p data-i18n="features.card9.body">Pull a monthly collection report or client statement, as a PDF, anytime.</p>
             </div>
-            <div class="feature-card reveal" style="transition-delay: 0.48s">
-                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="3" width="20" height="14" rx="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></div>
-                <h3 data-i18n="features.card7.title">Try It on the Web, No Signup</h3>
-                <p><span data-i18n="features.card7.bodyPrefix">Not on WhatsApp yet? Generate your first quotation right in the browser at</span> <a href="https://app.billbolo.in" target="_blank" style="color: var(--primary-dark); font-weight: 700;">app.billbolo.in</a> <span data-i18n="features.card7.bodySuffix">— then switch to the bot anytime.</span></p>
+            <div class="feature-card reveal" style="transition-delay: 0.45s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.59 13.41L13.42 20.58a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"></path><line x1="7" y1="7" x2="7.01" y2="7"></line></svg></div>
+                <h3 data-i18n="features.card10.title">Item-Level Discounts</h3>
+                <p data-i18n="features.card10.body">Add a discount per item or on the whole bill — handled automatically in the total.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.5s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="13.5" cy="6.5" r=".5"></circle><circle cx="17.5" cy="10.5" r=".5"></circle><circle cx="8.5" cy="7.5" r=".5"></circle><circle cx="6.5" cy="12.5" r=".5"></circle><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.555-2.503 5.555-5.554C21.965 6.012 17.461 2 12 2z"></path></svg></div>
+                <h3 data-i18n="features.card11.title">Multiple Invoice Themes</h3>
+                <p data-i18n="features.card11.body">Pick a look that fits your brand, not one fixed template.</p>
+            </div>
+            <div class="feature-card reveal" style="transition-delay: 0.55s">
+                <div class="feature-icon icon-badge icon-badge-lg"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg></div>
+                <h3 data-i18n="features.card12.title">Estimates → Invoice</h3>
+                <p data-i18n="features.card12.body">Turn an accepted quotation straight into a final invoice — no re-entering details.</p>
             </div>
         </div>
     </section>
@@ -229,100 +254,38 @@
     <!-- How It Works Section -->
     <section class="how-it-works">
         <div class="section-header reveal">
-            <h2 data-i18n="how.title">From voice note to paid invoice — in one chat</h2>
+            <h2 data-i18n="how.title">From a message to it being done</h2>
             <p data-i18n="how.subtitle">No forms. No dashboards. No new habits.</p>
         </div>
         <div class="workflow">
             <div class="workflow-step reveal" style="transition-delay: 0s">
                 <div class="step-num">1</div>
-                <h3 data-i18n="how.step1.title">Send it</h3>
-                <p data-i18n="how.step1.body">Voice note or photo, straight to BillBolo on WhatsApp</p>
+                <div class="workflow-step-text">
+                    <h3 data-i18n="how.step1.title">Message BillBolo</h3>
+                    <p data-i18n="how.step1.body">Voice note, photo, or just type — whatever's easiest, on WhatsApp.</p>
+                </div>
             </div>
-            <div class="workflow-arrow">→</div>
             <div class="workflow-step reveal" style="transition-delay: 0.15s">
                 <div class="step-num">2</div>
-                <h3 data-i18n="how.step2.title">AI reads it</h3>
-                <p data-i18n="how.step2.body">Our AI extracts every item, quantity and price instantly</p>
+                <div class="workflow-step-text">
+                    <h3 data-i18n="how.step2.title">It understands</h3>
+                    <p data-i18n="how.step2.body">AI reads what you said or sent, in your own language, instantly.</p>
+                </div>
             </div>
-            <div class="workflow-arrow">→</div>
             <div class="workflow-step reveal" style="transition-delay: 0.3s">
                 <div class="step-num">3</div>
-                <h3 data-i18n="how.step3.title">It's done</h3>
-                <p data-i18n="how.step3.body">PDF lands in the chat. Expense is already logged.</p>
-            </div>
-        </div>
-    </section>
-
-    <!-- Pricing Section -->
-    <section class="pricing" id="pricing">
-        <div class="section-header reveal">
-            <h2 data-i18n="pricing.title">Pricing that pays for itself with one saved deal</h2>
-            <p data-i18n="pricing.subtitle">Start free. Upgrade only when you outgrow what's included.</p>
-        </div>
-        <div class="pricing-cards pricing-cards-4">
-            <div class="pricing-card reveal" style="transition-delay: 0s">
-                <h3 data-i18n="pricing.free.name">Free</h3>
-                <p class="price">₹0</p>
-                <ul>
-                    <li data-i18n="pricing.free.feature1">5 quotations/month</li>
-                    <li data-i18n="pricing.free.feature2">Text-to-Quotation</li>
-                    <li data-i18n="pricing.free.feature3">Speech-to-Quotation</li>
-                    <li data-i18n="pricing.free.feature4">English only</li>
-                </ul>
-                <a href="checkout.html?plan=free" class="plan-button free-btn" data-i18n="pricing.free.button">Get Started</a>
-            </div>
-            <div class="pricing-card featured reveal" style="transition-delay: 0.08s">
-                <div class="badge" data-i18n="pricing.mostPopular">Most Popular</div>
-                <h3 data-i18n="pricing.starter.name">Starter</h3>
-                <p class="price">₹249<span data-i18n="pricing.perMonth">/month</span></p>
-                <p class="discount" data-i18n="pricing.starter.discount">or ₹2,499/year · save 16%</p>
-                <ul>
-                    <li data-i18n="pricing.starter.feature1">Unlimited quotations</li>
-                    <li data-i18n="pricing.starter.feature2">Hindi + English (voice &amp; photo)</li>
-                    <li data-i18n="pricing.starter.feature3">Client database</li>
-                </ul>
-                <a href="checkout.html?plan=starter" class="plan-button pro-btn" data-i18n="pricing.starter.button">Choose Starter</a>
-            </div>
-            <div class="pricing-card pricing-card-soon reveal" style="transition-delay: 0.16s">
-                <div class="badge badge-soon" data-i18n="pricing.comingSoon">Coming Soon</div>
-                <h3 data-i18n="pricing.growth.name">Growth</h3>
-                <p class="price">₹499<span data-i18n="pricing.perMonth">/month</span></p>
-                <p class="discount" data-i18n="pricing.growth.discount">or ₹4,999/year · save 17%</p>
-                <ul>
-                    <li data-i18n="pricing.growth.feature1">All 22 Indian languages</li>
-                    <li data-i18n="pricing.growth.feature2">GST-compliant invoicing</li>
-                    <li data-i18n="pricing.growth.feature3">UPI payment link on invoices</li>
-                    <li data-i18n="pricing.growth.feature4">Payment reminders</li>
-                    <li data-i18n="pricing.growth.feature5">Udhaar/credit ledger</li>
-                    <li data-i18n="pricing.growth.feature6">Rate card memory</li>
-                    <li data-i18n="pricing.growth.feature7">Weekly business summary</li>
-                    <li data-i18n="pricing.growth.feature8">Monthly expense report (PDF)</li>
-                    <li data-i18n="pricing.growth.feature9">Expense tracking &amp; Google Sheets sync</li>
-                </ul>
-                <span class="plan-button plan-button-disabled" data-i18n="pricing.comingSoon">Coming Soon</span>
-            </div>
-            <div class="pricing-card pricing-card-soon reveal" style="transition-delay: 0.24s">
-                <div class="badge badge-soon" data-i18n="pricing.comingSoon">Coming Soon</div>
-                <h3 data-i18n="pricing.business.name">Business</h3>
-                <p class="price">₹999<span data-i18n="pricing.perMonth">/month</span></p>
-                <p class="discount" data-i18n="pricing.business.discount">or ₹9,999/year · save 17%</p>
-                <ul>
-                    <li data-i18n="pricing.business.feature1">Everything in Growth</li>
-                    <li data-i18n="pricing.business.feature2">TDS tracking</li>
-                    <li data-i18n="pricing.business.feature3">GST filing reminders</li>
-                    <li data-i18n="pricing.business.feature4">MSME/Udyam number on invoices</li>
-                    <li data-i18n="pricing.business.feature5">Multiple staff &amp; business profiles</li>
-                    <li data-i18n="pricing.business.feature6">Dedicated priority support</li>
-                </ul>
-                <span class="plan-button plan-button-disabled" data-i18n="pricing.comingSoon">Coming Soon</span>
+                <div class="workflow-step-text">
+                    <h3 data-i18n="how.step3.title">It's handled</h3>
+                    <p data-i18n="how.step3.body">Quotation sent, expense logged, or your ledger updated — done.</p>
+                </div>
             </div>
         </div>
     </section>
 
     <!-- CTA Section -->
     <section class="cta-section reveal" id="contact">
-        <h2 data-i18n="cta.title">Stop losing deals to slow quotes.</h2>
-        <p data-i18n="cta.body">Message BillBolo on WhatsApp right now and send your first voice note — watch the PDF land in under 5 seconds.</p>
+        <h2 data-i18n="cta.title">Stop juggling notebooks and typing invoices.</h2>
+        <p data-i18n="cta.body">Message BillBolo on WhatsApp right now and see how fast running your business can be.</p>
         <a href="https://wa.me/918123422932" target="_blank" class="cta-button" data-i18n="cta.button">Message BillBolo →</a>
     </section>
 
