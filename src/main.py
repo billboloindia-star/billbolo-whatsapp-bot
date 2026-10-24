@@ -111,6 +111,13 @@ async def web_demo_expense(request: Request):
     return await web_demo_handler.handle_generate_expense(request)
 
 
+@app.post("/api/web/ledger")
+async def web_demo_ledger(request: Request):
+    """Public web demo endpoint - a ledger command, scoped to a demo session."""
+    logger.debug("Web demo ledger request received")
+    return await web_demo_handler.handle_ledger_command(request)
+
+
 @app.post("/api/auth/signup")
 async def auth_signup(request: Request):
     """Create a new web app account."""

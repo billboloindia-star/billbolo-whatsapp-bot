@@ -39,6 +39,7 @@ class DynamoDBClient:
         phone_number: str,
         business_name: str,
         sheet_id: Optional[str] = None,
+        ttl_days: int = 365,
     ) -> bool:
         """Create a new user profile with initial 5 free credits."""
         try:
@@ -51,7 +52,7 @@ class DynamoDBClient:
                 "sheet_id": sheet_id or "",
                 "updated_at": datetime.utcnow().isoformat(),
                 "expires_at": int(
-                    (datetime.utcnow() + timedelta(days=365)).timestamp()
+                    (datetime.utcnow() + timedelta(days=ttl_days)).timestamp()
                 ),
             }
             self.table.put_item(Item=item)
@@ -124,10 +125,12 @@ class DynamoDBClient:
         amount: float,
         description: Optional[str] = None,
         due_date: Optional[str] = None,
+        ttl_days: Optional[int] = None,
     ) -> Optional[dict]:
         """Record that a client owes the business owner money, via WhatsApp.
         Stored under a distinct partition key (ledger#<phone>), same pattern
-        as expenses. No TTL - an unpaid debt shouldn't silently vanish."""
+        as expenses. No TTL by default - an unpaid debt shouldn't silently
+        vanish; ttl_days is only passed for throwaway demo data."""
         try:
             sort_key = f"{datetime.utcnow().isoformat()}#{uuid.uuid4().hex[:8]}"
             item = {
@@ -141,6 +144,8 @@ class DynamoDBClient:
                 "status": "owed",
                 "paid_at": "",
             }
+            if ttl_days is not None:
+                item["expires_at"] = int((datetime.utcnow() + timedelta(days=ttl_days)).timestamp())
             self.table.put_item(Item=item)
             return item
         except (BotoCoreError, ClientError) as e:

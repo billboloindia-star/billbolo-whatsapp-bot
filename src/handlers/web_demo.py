@@ -2,6 +2,8 @@
 
 import base64
 import logging
+import re
+import uuid
 
 from fastapi import Request, Response
 from fastapi.responses import JSONResponse
@@ -9,6 +11,7 @@ from starlette.datastructures import UploadFile
 
 from src.services.ai_extractor import GeminiExtractor
 from src.services.database import DynamoDBClient
+from src.services.ledger_assistant import LedgerAssistant
 from src.services.pdf_generator import PDFGenerator
 
 logger = logging.getLogger(__name__)
@@ -16,6 +19,8 @@ logger = logging.getLogger(__name__)
 MONTHLY_LIMIT_PER_IP = 5
 MAX_AUDIO_BYTES = 10 * 1024 * 1024  # ~60s of compressed voice audio, generous ceiling
 MAX_IMAGE_BYTES = 10 * 1024 * 1024  # 10 MB ceiling for a bill photo/PDF
+DEMO_LEDGER_TTL_DAYS = 1  # demo ledger data is throwaway, unlike a real user's
+SESSION_ID_RE = re.compile(r"^[a-zA-Z0-9_-]{1,64}$")
 
 
 class WebDemoHandler:
@@ -25,6 +30,7 @@ class WebDemoHandler:
         self.extractor = extractor
         self.pdf_gen = pdf_gen
         self.db = db_client
+        self.ledger = LedgerAssistant(db_client, extractor, ttl_days=DEMO_LEDGER_TTL_DAYS)
 
     async def handle_generate(self, request: Request) -> Response:
         """Accept a text description and return the extracted data + PDF."""
@@ -180,6 +186,44 @@ class WebDemoHandler:
                 status_code=500,
                 content={"error": "Something went wrong. Please try again."},
             )
+
+    async def handle_ledger_command(self, request: Request) -> Response:
+        """Accept a ledger-style text message ('Ramesh owes me 2000', 'who
+        owes me money') and return the assistant's reply. Demo only - scoped
+        to a short-lived, client-generated session id, never a real phone
+        number, and the underlying ledger data expires after a day."""
+        try:
+            client_ip = self._get_client_ip(request)
+            if not self.db.check_rate_limit(client_ip, limit=MONTHLY_LIMIT_PER_IP):
+                return JSONResponse(
+                    status_code=429,
+                    content={
+                        "error": f"You've reached this month's limit of {MONTHLY_LIMIT_PER_IP} free demo "
+                        "tries. Message BillBolo on WhatsApp for unlimited use: "
+                        "wa.me/918123422932"
+                    },
+                )
+
+            body = await request.json()
+            text = (body.get("text") or "").strip()
+            session_id = (body.get("session_id") or "").strip()
+
+            if not text:
+                return JSONResponse(status_code=400, content={"error": "Please type a message."})
+            if len(text) > 500:
+                return JSONResponse(status_code=400, content={"error": "Message is too long (max 500 characters)."})
+            if not SESSION_ID_RE.match(session_id):
+                session_id = uuid.uuid4().hex
+
+            identifier = f"demoledger#{session_id}"
+            if not self.db.get_user_profile(identifier):
+                self.db.create_user_profile(identifier, business_name="Demo", ttl_days=DEMO_LEDGER_TTL_DAYS)
+
+            reply = self.ledger.handle(identifier, text, force=True)
+            return JSONResponse(status_code=200, content={"reply": reply, "session_id": session_id})
+        except Exception as e:
+            logger.error(f"Web demo ledger command failed: {e}")
+            return JSONResponse(status_code=500, content={"error": "Something went wrong. Please try again."})
 
     def _build_success_response(self, extracted) -> JSONResponse:
         """Generate the demo PDF and build the shared success response payload."""
