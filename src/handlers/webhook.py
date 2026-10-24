@@ -109,6 +109,8 @@ class WebhookHandler:
             if text.lower().startswith("quote:") or text.lower().startswith("q:"):
                 # Edit mode: "Change wardrobe rate to 1,700"
                 await self._handle_edit_request(phone_number, text)
+            elif self._looks_like_ledger_command(text) and await self._try_handle_ledger_command(phone_number, text):
+                pass
             else:
                 await self._generate_quotation(
                     phone_number,
@@ -120,6 +122,103 @@ class WebhookHandler:
                         "or send a voice note or bill image instead."
                     ),
                 )
+
+    LEDGER_KEYWORDS = (
+        "owe", "owes", "owed", "udhaar", "udhar", "paid", "payment", "balance",
+        "baaki", "due", "cleared", "settled", "credit",
+    )
+
+    def _looks_like_ledger_command(self, text: str) -> bool:
+        """Cheap keyword pre-filter so a normal quotation message (the common
+        case) never pays for an extra AI classification call."""
+        lower = text.lower()
+        return any(kw in lower for kw in self.LEDGER_KEYWORDS)
+
+    async def _try_handle_ledger_command(self, phone_number: str, text: str) -> bool:
+        """If this text message is a ledger command (add entry/mark paid/check
+        balance), handle it and return True. Otherwise return False so the
+        caller falls through to normal quotation generation."""
+        command = self.extractor.classify_text_command(text)
+        if not command or command.action not in ("add_ledger_entry", "mark_ledger_paid", "check_balance"):
+            return False
+
+        if command.action == "add_ledger_entry":
+            if not command.client_name or not command.amount:
+                await self._send_reply(
+                    phone_number,
+                    "I couldn't tell who owes how much. Try something like "
+                    "'Ramesh owes me 2000 for tiling work'.",
+                )
+                return True
+            self.db.create_ledger_entry(
+                phone_number,
+                client_name=command.client_name,
+                amount=command.amount,
+                description=command.ledger_description,
+                due_date=command.due_date,
+            )
+            balances = self.db.get_ledger_balances(phone_number, client_name_query=command.client_name)
+            own_bucket = next(
+                (b for b in balances if b["client_name"].lower() == command.client_name.lower()), None
+            )
+            total = own_bucket["total"] if own_bucket else command.amount
+            entry_count = own_bucket["entry_count"] if own_bucket else 1
+            await self._send_reply(
+                phone_number,
+                f"Added: {command.client_name} owes ₹{total:,.0f}"
+                + (f" (total across {entry_count} entries)" if entry_count > 1 else ""),
+            )
+            return True
+
+        if command.action == "mark_ledger_paid":
+            if not command.client_name_query:
+                await self._send_reply(phone_number, "Who should I mark as paid?")
+                return True
+            paid_entries = self.db.mark_ledger_entries_paid(phone_number, command.client_name_query)
+            if not paid_entries:
+                await self._send_reply(phone_number, f"No pending balance found for {command.client_name_query}.")
+                return True
+            total_cleared = sum(e["amount"] for e in paid_entries)
+            await self._send_reply(
+                phone_number,
+                f"Marked {paid_entries[0]['client_name']} as paid — cleared ₹{total_cleared:,.0f}.",
+            )
+            return True
+
+        if command.action == "check_balance":
+            balances = self.db.get_ledger_balances(phone_number, client_name_query=command.client_name_query)
+            if not balances:
+                target = command.client_name_query or "Everyone"
+                await self._send_reply(phone_number, f"No pending balance for {target}." if command.client_name_query else "No pending balances right now.")
+                return True
+            if command.client_name_query:
+                exact = next(
+                    (b for b in balances if b["client_name"].lower() == command.client_name_query.strip().lower()),
+                    None,
+                )
+                if exact:
+                    await self._send_reply(
+                        phone_number, f"{exact['client_name']} owes you ₹{exact['total']:,.0f} ({exact['entry_count']} entries)."
+                    )
+                elif len(balances) == 1:
+                    b = balances[0]
+                    await self._send_reply(phone_number, f"{b['client_name']} owes you ₹{b['total']:,.0f} ({b['entry_count']} entries).")
+                else:
+                    lines = [f"{b['client_name']}: ₹{b['total']:,.0f}" for b in balances]
+                    await self._send_reply(
+                        phone_number,
+                        f"A few names match '{command.client_name_query}':\n" + "\n".join(lines),
+                    )
+            else:
+                lines = [f"{b['client_name']}: ₹{b['total']:,.0f}" for b in balances]
+                grand_total = sum(b["total"] for b in balances)
+                await self._send_reply(
+                    phone_number,
+                    "Who owes you money:\n" + "\n".join(lines) + f"\n\nTotal: ₹{grand_total:,.0f}",
+                )
+            return True
+
+        return False
 
     async def _handle_audio_message(self, phone_number: str, media_id: str) -> None:
         """Handle audio (voice note) message."""

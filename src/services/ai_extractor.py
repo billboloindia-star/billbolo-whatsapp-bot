@@ -19,6 +19,7 @@ VOICE_COMMAND_ACTIONS = (
     "add_client",
     "add_ledger_entry",
     "mark_ledger_paid",
+    "check_balance",
     "unknown",
 )
 
@@ -45,6 +46,7 @@ class VoiceCommand(BaseModel):
         "add_client",
         "add_ledger_entry",
         "mark_ledger_paid",
+        "check_balance",
         "unknown",
     ] = Field(..., description="Which supported action this command maps to")
     confirmation_text: str = Field(
@@ -64,8 +66,10 @@ class VoiceCommand(BaseModel):
     # add_ledger_entry
     ledger_description: Optional[str] = Field(None, description="What the ledger entry is for")
     due_date: Optional[str] = Field(None, description="Due date if mentioned, as YYYY-MM-DD if determinable, else as said")
-    # mark_ledger_paid
-    client_name_query: Optional[str] = Field(None, description="Name to search for among unpaid ledger entries")
+    # mark_ledger_paid, check_balance
+    client_name_query: Optional[str] = Field(
+        None, description="Name to search for among unpaid ledger entries (null in check_balance means 'everyone')"
+    )
 
 
 class LineItem(BaseModel):
@@ -188,10 +192,25 @@ class GeminiExtractor:
             logger.error(f"Failed to classify voice command: {e}")
             return None
 
+    def classify_text_command(self, text: str) -> Optional[VoiceCommand]:
+        """Classify a short text message into one of the app's fixed set of actions.
+        Same classifier/prompt as classify_voice_command, just text input - used for
+        WhatsApp ledger commands ('Ramesh owes me 2000', 'mark Ramesh as paid')."""
+        try:
+            prompt = self._build_voice_command_prompt()
+            response = self.client.models.generate_content(
+                model=self.MODEL_NAME,
+                contents=[text, prompt],
+            )
+            return self._parse_voice_command_response(response.text)
+        except Exception as e:
+            logger.error(f"Failed to classify text command: {e}")
+            return None
+
     def _build_voice_command_prompt(self) -> str:
         return """You are a voice command classifier for BillBolo, a business app for Indian contractors and freelancers. The user may speak in English, Hindi, Bengali, Tamil, Telugu, Marathi, Hinglish, or a mix of English and any Indian language.
 
-Listen to this short spoken command and classify it into EXACTLY ONE of these 7 actions. Respond with ONLY a valid JSON object (no markdown, no extra text).
+Classify this command into EXACTLY ONE of these 8 actions. Respond with ONLY a valid JSON object (no markdown, no extra text).
 
 Actions and their JSON shape:
 
@@ -213,7 +232,10 @@ Actions and their JSON shape:
 6. mark_ledger_paid - user wants to mark an existing debt as paid. Example: "mark Sharma's payment as paid"
    {"action": "mark_ledger_paid", "client_name_query": "Sharma", "confirmation_text": "..."}
 
-7. unknown - the command doesn't clearly match any of the above, or audio is unclear
+7. check_balance - user wants to know who owes them money, or how much a specific client owes. Example: "who owes me money", "what does Ramesh owe me", "total udhaar", "Suresh ka balance kitna hai"
+   {"action": "check_balance", "client_name_query": "<name mentioned, or null if asking about everyone>", "confirmation_text": "..."}
+
+8. unknown - the command doesn't clearly match any of the above, or audio is unclear
    {"action": "unknown", "confirmation_text": "Sorry, I didn't catch a command I can act on."}
 
 Rules:

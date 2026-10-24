@@ -117,6 +117,103 @@ class DynamoDBClient:
             logger.error(f"Failed to list expenses: {e}")
             return []
 
+    def create_ledger_entry(
+        self,
+        phone_number: str,
+        client_name: str,
+        amount: float,
+        description: Optional[str] = None,
+        due_date: Optional[str] = None,
+    ) -> Optional[dict]:
+        """Record that a client owes the business owner money, via WhatsApp.
+        Stored under a distinct partition key (ledger#<phone>), same pattern
+        as expenses. No TTL - an unpaid debt shouldn't silently vanish."""
+        try:
+            sort_key = f"{datetime.utcnow().isoformat()}#{uuid.uuid4().hex[:8]}"
+            item = {
+                "phone_number": f"ledger#{phone_number}",
+                "created_at": sort_key,
+                "client_name": client_name,
+                "client_name_lower": client_name.lower(),
+                "amount": _to_decimal(amount),
+                "description": description or "",
+                "due_date": due_date or "",
+                "status": "owed",
+                "paid_at": "",
+            }
+            self.table.put_item(Item=item)
+            return item
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to create ledger entry: {e}")
+            return None
+
+    def list_ledger_entries(self, phone_number: str, status: Optional[str] = None) -> list[dict]:
+        """List all ledger entries for this phone number, newest first.
+        Optionally filtered to a status ("owed" or "paid")."""
+        try:
+            response = self.table.query(
+                KeyConditionExpression="phone_number = :pn",
+                ExpressionAttributeValues={":pn": f"ledger#{phone_number}"},
+                ScanIndexForward=False,
+            )
+            items = response.get("Items", [])
+            if status:
+                items = [i for i in items if i.get("status") == status]
+            return items
+        except (BotoCoreError, ClientError) as e:
+            logger.error(f"Failed to list ledger entries: {e}")
+            return []
+
+    def mark_ledger_entries_paid(self, phone_number: str, client_name_query: str) -> list[dict]:
+        """Mark all unpaid entries for a client as paid (clears their whole
+        balance, not just the latest entry - matches how 'mark X as paid'
+        is usually meant). Matches by case-insensitive substring in either
+        direction, so 'Ramesh' matches a saved 'Ramesh Kumar' and vice versa.
+        Returns the entries that were marked paid."""
+        query_lower = client_name_query.strip().lower()
+        unpaid = self.list_ledger_entries(phone_number, status="owed")
+        matches = [
+            e
+            for e in unpaid
+            if query_lower in e.get("client_name_lower", "") or e.get("client_name_lower", "") in query_lower
+        ]
+        paid_now = []
+        for entry in matches:
+            try:
+                self.table.update_item(
+                    Key={"phone_number": entry["phone_number"], "created_at": entry["created_at"]},
+                    UpdateExpression="SET #s = :paid, paid_at = :ts",
+                    ExpressionAttributeNames={"#s": "status"},
+                    ExpressionAttributeValues={":paid": "paid", ":ts": datetime.utcnow().isoformat()},
+                )
+                paid_now.append(entry)
+            except (BotoCoreError, ClientError) as e:
+                logger.error(f"Failed to mark ledger entry paid: {e}")
+        return paid_now
+
+    def get_ledger_balances(self, phone_number: str, client_name_query: Optional[str] = None) -> list[dict]:
+        """Aggregate unpaid ledger entries into a per-client balance list,
+        sorted by amount owed descending. If client_name_query is given,
+        filtered to clients matching it (same fuzzy substring match as
+        mark_ledger_entries_paid)."""
+        unpaid = self.list_ledger_entries(phone_number, status="owed")
+        if client_name_query:
+            query_lower = client_name_query.strip().lower()
+            unpaid = [
+                e
+                for e in unpaid
+                if query_lower in e.get("client_name_lower", "") or e.get("client_name_lower", "") in query_lower
+            ]
+
+        balances: dict[str, dict] = {}
+        for entry in unpaid:
+            name = entry.get("client_name", "Unknown")
+            bucket = balances.setdefault(name, {"client_name": name, "total": Decimal("0"), "entry_count": 0})
+            bucket["total"] += entry.get("amount", Decimal("0"))
+            bucket["entry_count"] += 1
+
+        return sorted(balances.values(), key=lambda b: b["total"], reverse=True)
+
     def get_user_profile(self, phone_number: str) -> Optional[dict]:
         """Retrieve user profile from DynamoDB."""
         try:
