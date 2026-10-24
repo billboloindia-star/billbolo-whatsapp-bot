@@ -3,6 +3,7 @@
 import hashlib
 import io
 import logging
+import os
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Optional
@@ -12,6 +13,8 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.platypus import (
     SimpleDocTemplate,
     Table,
@@ -25,6 +28,49 @@ from src.services.ai_extractor import ExtractedData
 logger = logging.getLogger(__name__)
 
 FOOTER_HEIGHT = 0.5 * inch
+
+# Native-script fonts for client/item text when a quotation/invoice was
+# created in an Indian language - headers and numbers always stay in the
+# default Helvetica, only text that may actually contain native script
+# (client name, item names, notes) switches font. No single font covers
+# every Indic script, so this only supports one native language per
+# document, matched against ExtractedData.language_detected.
+_FONTS_DIR = os.path.join(os.path.dirname(__file__), "..", "assets", "fonts")
+_SCRIPT_FONTS = {
+    "hi": ("NotoSansDevanagari", "NotoSansDevanagari-Regular.ttf", "NotoSansDevanagari-Bold.ttf"),
+    "mr": ("NotoSansDevanagari", "NotoSansDevanagari-Regular.ttf", "NotoSansDevanagari-Bold.ttf"),  # Marathi uses Devanagari
+    "bn": ("NotoSansBengali", "NotoSansBengali-Regular.ttf", "NotoSansBengali-Bold.ttf"),
+    "ta": ("NotoSansTamil", "NotoSansTamil-Regular.ttf", "NotoSansTamil-Bold.ttf"),
+    "te": ("NotoSansTelugu", "NotoSansTelugu-Regular.ttf", "NotoSansTelugu-Bold.ttf"),
+}
+_registered_fonts: set[str] = set()
+
+
+def _register_script_font(name: str, regular_file: str, bold_file: str) -> None:
+    if name in _registered_fonts:
+        return
+    try:
+        pdfmetrics.registerFont(TTFont(name, os.path.join(_FONTS_DIR, regular_file)))
+        pdfmetrics.registerFont(TTFont(f"{name}-Bold", os.path.join(_FONTS_DIR, bold_file)))
+        pdfmetrics.registerFontFamily(name, normal=name, bold=f"{name}-Bold", italic=name, boldItalic=f"{name}-Bold")
+        _registered_fonts.add(name)
+    except Exception as e:
+        logger.error(f"Failed to register font {name}: {e}")
+
+
+def script_font(language_detected: Optional[str], bold: bool = False) -> str:
+    """Font name to use for text that may contain native-script content
+    (client name, item names, notes), based on the document's detected
+    language. Falls back to standard Helvetica for English/unrecognized/
+    unsupported languages."""
+    entry = _SCRIPT_FONTS.get((language_detected or "").lower())
+    if not entry:
+        return "Helvetica-Bold" if bold else "Helvetica"
+    name, regular_file, bold_file = entry
+    _register_script_font(name, regular_file, bold_file)
+    if name not in _registered_fonts:
+        return "Helvetica-Bold" if bold else "Helvetica"
+    return f"{name}-Bold" if bold else name
 
 _ONES = (
     "", "One", "Two", "Three", "Four", "Five", "Six", "Seven", "Eight", "Nine", "Ten",
@@ -197,6 +243,10 @@ class PDFGenerator:
             textColor=(colors.white if self.theme.header_style in ("formal",) else self.BRAND_DARK),
             fontName="Helvetica-Bold",
         ))
+        s.add(ParagraphStyle(
+            name="ItemBody", parent=s["Normal"], fontSize=9.5 * fs,
+            textColor=self.TEXT_DARK, fontName="Helvetica", leading=11.5 * fs,
+        ))
 
     def generate_quotation(
         self,
@@ -275,7 +325,8 @@ class PDFGenerator:
 
             if extracted_data.notes:
                 story.append(Spacer(1, 18 * fs))
-                story.append(Paragraph(f"<b>Notes</b><br/>{extracted_data.notes}", self.styles["NotesBody"]))
+                notes_style = self._localized_style("NotesBody", extracted_data.language_detected)
+                story.append(Paragraph(f"<b>Notes</b><br/>{extracted_data.notes}", notes_style))
 
             story.append(Spacer(1, 26 * fs))
             story.append(self._build_terms_and_signature(business_info, doc_type))
@@ -405,20 +456,32 @@ class PDFGenerator:
         rule.setStyle(TableStyle([("BACKGROUND", (0, 0), (-1, -1), self.BRAND_PRIMARY)]))
         return rule
 
+    def _localized_style(self, base_style_name: str, language_detected: Optional[str]) -> ParagraphStyle:
+        """Clone a named ParagraphStyle, swapping its font for the matching
+        native-script font when the document's detected language has one
+        registered - otherwise returns the base style unchanged."""
+        base = self.styles[base_style_name]
+        font = script_font(language_detected, bold="Bold" in base.fontName)
+        if font == base.fontName:
+            return base
+        clone = ParagraphStyle(f"{base_style_name}_{language_detected}", parent=base, fontName=font)
+        return clone
+
     def _build_bill_to_row(self, extracted_data: ExtractedData, doc_type: str = "quotation") -> Table:
         """'Bill To' (plus 'Ship To' for an invoice with a shipping address)
         alongside quote validity or invoice due date, no heavy background."""
+        client_name_style = self._localized_style("ClientName", extracted_data.language_detected)
         bill_to = [
             Paragraph("BILL TO", self.styles["Label"]),
             Spacer(1, 3),
-            Paragraph(extracted_data.client_name or "Client", self.styles["ClientName"]),
+            Paragraph(extracted_data.client_name or "Client", client_name_style),
         ]
         if doc_type == "invoice" and extracted_data.shipping_address:
             bill_to += [
                 Spacer(1, 10),
                 Paragraph("SHIP TO", self.styles["Label"]),
                 Spacer(1, 3),
-                Paragraph(extracted_data.shipping_address, self.styles["ClientName"]),
+                Paragraph(extracted_data.shipping_address, client_name_style),
             ]
         if doc_type == "invoice" and extracted_data.period_from and extracted_data.period_to:
             bill_to += [
@@ -501,12 +564,13 @@ class PDFGenerator:
         header.append("AMOUNT (Rs.)")
         col_widths.append(amount_w)
         table_data = [header]
+        item_name_style = self._localized_style("ItemBody", extracted_data.language_detected)
 
         for item in extracted_data.items:
             row = []
             if has_dates:
                 row.append(item.item_date or "—")
-            row += [item.item_name, f"{item.quantity:,.2f}", f"{item.rate:,.2f}", item.unit]
+            row += [Paragraph(item.item_name, item_name_style), f"{item.quantity:,.2f}", f"{item.rate:,.2f}", item.unit]
             if has_discounts:
                 row.append(f"{item.discount:,.2f}" if item.discount else "—")
             row.append(f"{item.amount:,.2f}")

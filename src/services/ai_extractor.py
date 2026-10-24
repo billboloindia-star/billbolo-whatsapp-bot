@@ -388,7 +388,7 @@ JSON Schema:
     "gst_amount": null,
     "grand_total": null,
     "currency": "INR",
-    "language_detected": "hi|en|other",
+    "language_detected": "hi|bn|ta|te|mr|en|other",
     "seller_name": "Name of the selling business/shop printed on the bill (or null)",
     "seller_gstin": "Seller's GSTIN printed on the bill (or null)",
     "seller_address": "Seller's address/place printed on the bill (or null)",
@@ -409,7 +409,7 @@ Rules:
 3. If items lack rates, set rate to 0 and mark for manual lookup
 4. For a NEW document being created from a voice note or text description (a quotation OR an invoice you're billing for directly - e.g. "invoice Ramesh for the cabinet work, 5000 rupees"), leave total_before_gst, gst_amount and grand_total as null - they will be calculated from the items automatically, same as a quotation.
    For a bill/receipt/invoice IMAGE that already shows a printed final total (e.g. "Grand Total", "Total", "Amount Payable"), capture that printed amount EXACTLY as grand_total - do not recalculate it from the line items, since bills often include discounts, fees or tax treatments not fully captured in the item list.
-5. Detect language and set language_detected field
+5. Detect language and set language_detected to its ISO code: hi (Hindi), bn (Bengali), ta (Tamil), te (Telugu), mr (Marathi), en (English), or "other" only if it's a language not in this list. Use the specific code even if the item_name/client_name ended up written in English/Hinglish - this reflects what language the user was speaking, not what script the extracted text happens to be in.
 6. For voice notes: user may say "Quotation for Sharma Ji, 80 sq ft wardrobe at 1,600 per sq ft" — parse exactly
 7. If a bill/receipt shows an HSN or SAC code next to an item (common on GST invoices), capture it exactly as printed in that item's hsn_code field. Leave it null if the bill has no HSN/SAC codes.
 8. If a bill/receipt shows the seller's business name, GSTIN, or address (usually printed at the top as the "Sold By" / letterhead), capture them in seller_name, seller_gstin, seller_address. Capture billing_address and shipping_address separately if both are printed (common on e-commerce invoices) - leave shipping_address null if only one address is shown. Capture order_date/invoice_date exactly as printed in order_date. Leave any of these null if not present on the bill - do not guess or invent them.
