@@ -2,6 +2,7 @@
 
 import json
 import logging
+from datetime import datetime
 from typing import Literal, Optional
 
 from google import genai
@@ -99,6 +100,9 @@ class LineItem(BaseModel):
     cgst: Optional[float] = Field(None, description="CGST amount for this line, if printed on a bill")
     igst: Optional[float] = Field(None, description="IGST amount for this line (interstate), if printed on a bill")
     line_total: Optional[float] = Field(None, description="Final amount for this line as printed on a bill, after discount and tax")
+    item_date: Optional[str] = Field(
+        None, description="This line's own transaction date (YYYY-MM-DD), only for a cumulative/periodic bill covering multiple dated transactions - null for a normal single-job quotation/invoice"
+    )
 
     def calculate_amount(self) -> float:
         """Calculate total amount for this item, net of any discount -
@@ -143,6 +147,11 @@ class ExtractedData(BaseModel):
     shipping_address: Optional[str] = Field(None, description="Shipping address, if printed on a bill")
     order_date: Optional[str] = Field(None, description="Order/invoice date, if printed on a bill")
     expense_category: Optional[str] = Field(None, description="For expenses/invoices only: one of the fixed expense categories, inferred from vendor/items")
+    due_date: Optional[str] = Field(None, description="For an invoice: payment due date, if mentioned (YYYY-MM-DD if determinable, else as said) - null for a quotation")
+    payment_mode: Optional[str] = Field(None, description="For an invoice: how payment should be/was made - Cash, UPI, Bank Transfer, Cheque, Card - only if mentioned")
+    amount_paid: Optional[float] = Field(None, description="For an invoice: advance or partial amount already received, if mentioned (e.g. 'paid 5000 advance') - null if nothing paid yet")
+    period_from: Optional[str] = Field(None, description="Start date of the billing period, only for a cumulative/periodic bill covering multiple dated transactions - null otherwise")
+    period_to: Optional[str] = Field(None, description="End date of the billing period, only for a cumulative/periodic bill - null otherwise")
 
 
 class GeminiExtractor:
@@ -327,7 +336,10 @@ Return ONLY the JSON object, no other text."""
 
     def _build_extraction_prompt(self, source_type: str) -> str:
         """Build the extraction prompt for Gemini."""
+        today = datetime.now().strftime("%Y-%m-%d (%A)")
         return f"""You are a professional bill/quotation extraction assistant for Indian businesses.
+
+Today's date is {today}. Use this to resolve relative dates like "due in 15 days", "next Friday", or a date mentioned without a year.
 
 Extract structured data from this {source_type}. The user may speak in English, Hindi, Bengali, Tamil, Telugu, Marathi, Hinglish, or a mix of English and any Indian language.
 
@@ -351,7 +363,8 @@ JSON Schema:
             "sgst": "SGST amount printed on this line (or null if not present)",
             "cgst": "CGST amount printed on this line (or null if not present)",
             "igst": "IGST amount printed on this line, for interstate bills (or null if not present)",
-            "line_total": "This line's final Total column amount exactly as printed on the bill (or null if not present)"
+            "line_total": "This line's final Total column amount exactly as printed on the bill (or null if not present)",
+            "item_date": "This line's own transaction date as YYYY-MM-DD, ONLY for a cumulative/periodic bill with multiple dated transactions (or null)"
         }}
     ],
     "notes": "Payment terms, delivery details, etc (or null)",
@@ -369,7 +382,12 @@ JSON Schema:
     "billing_address": "Billing address printed on the bill (or null)",
     "shipping_address": "Shipping address printed on the bill (or null, if same as billing leave shipping_address null)",
     "order_date": "Order/invoice date printed on the bill, as written (or null)",
-    "expense_category": "For an expense/invoice (not a quotation): one of Materials, Labour, Transport, Rent, Utilities, Equipment, Office Supplies, Professional Fees, Other - inferred from the vendor name and items (or null for a quotation)"
+    "expense_category": "For an expense/invoice (not a quotation): one of Materials, Labour, Transport, Rent, Utilities, Equipment, Office Supplies, Professional Fees, Other - inferred from the vendor name and items (or null for a quotation)",
+    "due_date": "For a NEW invoice: payment due date if mentioned, e.g. 'due in 15 days' or 'due by 10th November' (YYYY-MM-DD if determinable, else as said, or null)",
+    "payment_mode": "For a NEW invoice: Cash, UPI, Bank Transfer, Cheque, or Card, only if explicitly mentioned (or null)",
+    "amount_paid": "For a NEW invoice: an advance or partial amount already received, e.g. 'he already paid 5000 advance' (or null if nothing mentioned as paid)",
+    "period_from": "Start date of the billing period (YYYY-MM-DD), ONLY if this is a cumulative/periodic bill covering multiple dated transactions for a repeat client (or null)",
+    "period_to": "End date of the billing period (YYYY-MM-DD), ONLY for a cumulative/periodic bill (or null)"
 }}
 
 Rules:
@@ -389,6 +407,11 @@ Rules:
     - A discount mentioned for the job as a whole ("give him 10% off the total", "flat 1000 off everything", "overall discount of 5%") belongs at the document level: set the top-level discount_percent or discount_amount, and leave every item's discount/discount_percent null.
     - If no discount is mentioned anywhere, leave all discount fields null - do not invent one.
     - Prefer a percentage field when the user said "%", and a flat amount field when they said a rupee figure. Never set both discount and discount_percent on the same item, or both discount_amount and discount_percent at the document level - pick the one that matches what was actually said.
+12. For a NEW invoice specifically (data_type "invoice", created from a voice note or text, not parsed from an image), also capture due_date, payment_mode, and amount_paid if mentioned - e.g. "invoice Ramesh for the cabinet work, 5000 rupees, due in 15 days, he already paid 2000 advance" sets due_date, amount_paid=2000. Leave any of these null if not mentioned - do not invent a due date or payment mode that wasn't said.
+13. A cumulative/periodic bill is a special kind of invoice for a repeat client covering MULTIPLE separate transactions over a date range, rather than one job - e.g. "cumulative bill for Ramesh from 1st January to 16th February: Jan 1st, cement 10 bags at 350; Feb 2nd, tiles 20 pieces at 80". Only use this shape when the user clearly describes several dated transactions being billed together:
+    - Set period_from and period_to at the document level.
+    - Set item_date on EVERY item to that transaction's own date.
+    - Leave period_from, period_to and item_date null for an ordinary single-job quotation or invoice - most invoices are NOT cumulative bills.
 
 Return ONLY the JSON object, no other text."""
 

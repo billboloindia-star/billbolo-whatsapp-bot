@@ -179,7 +179,9 @@ class WebhookHandler:
             await self._send_reply(phone_number, not_understood_message)
             return
 
-        pdf_bytes = self.pdf_gen.generate_quotation(
+        is_invoice = extracted.data_type == "invoice"
+        gen_fn = self.pdf_gen.generate_invoice if is_invoice else self.pdf_gen.generate_quotation
+        pdf_bytes = gen_fn(
             extracted,
             {"name": user.get("business_name", "Business")},
             is_pro=user.get("is_pro", False),
@@ -189,10 +191,11 @@ class WebhookHandler:
             return
 
         pdf_url = await self._save_pdf_to_s3(pdf_bytes, phone_number)
+        doc_label = "Invoice" if is_invoice else "Quotation"
         await self.whatsapp.send_document(
             phone_number,
             pdf_url,
-            caption=f"Quotation for {extracted.client_name or 'your client'}",
+            caption=f"{doc_label} for {extracted.client_name or 'your client'}",
         )
 
         if user.get("sheet_id"):
